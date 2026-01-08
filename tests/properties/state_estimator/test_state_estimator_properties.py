@@ -1,11 +1,11 @@
 import pytest
 import numpy as np
 
-from src.domain.core.state_variable import StateVariable
-from src.domain.core.state_vector import StateVector
-from src.domain.core.observable import Observable
-from src.domain.core.observation_model import ObservationModel
-from src.domain.core.state_estimator import (
+from domain.core.state_variable import StateVariable
+from domain.core.state_vector import StateVector
+from domain.core.observable import Observable
+from domain.core.observation_model import ObservationModel
+from domain.core.state_estimator import (
     StateEstimator,
     StateEstimatorInvariantViolation,
 )

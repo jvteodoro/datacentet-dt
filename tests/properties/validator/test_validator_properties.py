@@ -1,11 +1,11 @@
 import pytest
 import numpy as np
 
-from src.domain.core.observable import Observable
-from src.domain.core.state_variable import StateVariable
-from src.domain.core.state_vector import StateVector
-from src.domain.core.snapshot import Snapshot
-from src.domain.validation.validator import (
+from domain.core.observable import Observable
+from domain.core.state_variable import StateVariable
+from domain.core.state_vector import StateVector
+from domain.core.snapshot import Snapshot
+from domain.validation.validator import (
     Validator,
     ValidationResult,
 )

@@ -2,10 +2,10 @@ import pytest
 from typing import Dict
 import numpy as np
 
-from src.domain.core.state_variable import StateVariable
-from src.domain.core.state_vector import StateVector
-from src.domain.core.identifiable import Identifiable
-from src.domain.core.observation_model import (
+from domain.core.state_variable import StateVariable
+from domain.core.state_vector import StateVector
+from domain.core.identifiable import Identifiable
+from domain.core.observation_model import (
     ObservationModel,
     PredictedObservable,
     ObservationModelInvariantViolation,

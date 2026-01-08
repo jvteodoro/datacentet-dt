@@ -8,9 +8,9 @@ a partir de observações e estado anterior.
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from src.domain.core.state_vector import StateVector
-from src.domain.core.observable import Observable
-from src.domain.core.observation_model import ObservationModel
+from domain.core.state_vector import StateVector
+from domain.core.observable import Observable
+from domain.core.observation_model import ObservationModel
 
 
 class StateEstimatorInvariantViolation(Exception):

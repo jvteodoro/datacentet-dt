@@ -1,7 +1,7 @@
 import pytest
 
-from src.domain.core.identifiable import Identifiable
-from src.domain.core.identifiable_registry import (
+from domain.core.identifiable import Identifiable
+from domain.core.identifiable_registry import (
     IdentifiableRegistry,
     IdentifiableRegistryViolation,
 )

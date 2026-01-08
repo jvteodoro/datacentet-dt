@@ -8,8 +8,8 @@ StateVector + Identifiables → Observáveis esperados
 from abc import ABC, abstractmethod
 from typing import Dict, List
 
-from src.domain.core.state_vector import StateVector
-from src.domain.core.identifiable import Identifiable
+from domain.core.state_vector import StateVector
+from domain.core.identifiable import Identifiable
 
 
 class ObservationModelInvariantViolation(Exception):

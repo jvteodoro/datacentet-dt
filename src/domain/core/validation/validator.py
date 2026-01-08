@@ -7,15 +7,15 @@ Aplica contratos científicos a um Snapshot.
 from dataclasses import dataclass
 from typing import Dict, List
 
-from src.domain.core.snapshot import Snapshot
+from domain.core.snapshot import Snapshot
 
 # Importa contratos
-from src.domain.contracts.software import SoftwareViolation
-from src.domain.contracts.temporal import TemporalViolation
-from src.domain.contracts.statistical import StatisticalViolation
-from src.domain.contracts.epistemic import EpistemicViolation
-from src.domain.contracts.model import ModelInvariantViolation
-from src.domain.contracts.hierarchy import HierarchyInvariantViolation
+from domain.contracts.software import SoftwareViolation
+from domain.contracts.temporal import TemporalViolation
+from domain.contracts.statistical import StatisticalViolation
+from domain.contracts.epistemic import EpistemicViolation
+from domain.contracts.model import ModelInvariantViolation
+from domain.contracts.hierarchy import HierarchyInvariantViolation
 
 
 @dataclass(frozen=True)

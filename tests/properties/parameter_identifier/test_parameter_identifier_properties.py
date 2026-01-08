@@ -1,10 +1,10 @@
 import pytest
 
-from src.domain.core.observable import Observable
-from src.domain.core.state_variable import StateVariable
-from src.domain.core.state_vector import StateVector
-from src.domain.core.identifiable import Identifiable
-from src.domain.core.parameter_identifier import (
+from domain.core.observable import Observable
+from domain.core.state_variable import StateVariable
+from domain.core.state_vector import StateVector
+from domain.core.identifiable import Identifiable
+from domain.core.parameter_identifier import (
     ParameterIdentifier,
     ParameterIdentifierInvariantViolation,
 )

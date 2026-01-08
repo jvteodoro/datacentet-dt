@@ -8,7 +8,7 @@ import numpy as np
 from typing import List, Dict, Any
 from copy import deepcopy
 
-from src.domain.core.state_variable import StateVariable
+from domain.core.state_variable import StateVariable
 
 
 class StateVectorInvariantViolation(Exception):

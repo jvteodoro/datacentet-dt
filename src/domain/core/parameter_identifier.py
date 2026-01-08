@@ -8,9 +8,9 @@ a partir de dados e/ou estado.
 from abc import ABC, abstractmethod
 from typing import List, Optional
 
-from src.domain.core.observable import Observable
-from src.domain.core.state_vector import StateVector
-from src.domain.core.identifiable import Identifiable
+from domain.core.observable import Observable
+from domain.core.state_vector import StateVector
+from domain.core.identifiable import Identifiable
 
 
 class ParameterIdentifierInvariantViolation(Exception):

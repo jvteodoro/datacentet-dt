@@ -1,7 +1,7 @@
 import pytest
 from hypothesis import given, strategies as st
 
-from src.domain.core.state_variable import (
+from domain.core.state_variable import (
     StateVariable,
     StateVariableInvariantViolation,
 )
@@ -10,7 +10,7 @@ from src.domain.core.state_variable import (
 # Estratégias
 # -------------------------
 
-valid_names = st.text(min_size=1)
+valid_names = st.from_regex(r"[A-Za-z_][A-Za-z0-9_]*", fullmatch=True)
 valid_values = st.floats(allow_nan=False, allow_infinity=False)
 valid_uncertainty = st.floats(min_value=0, allow_nan=False, allow_infinity=False)
 valid_timestamps = st.integers()

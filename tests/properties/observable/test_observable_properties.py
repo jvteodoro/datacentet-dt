@@ -1,7 +1,7 @@
 import pytest
 from hypothesis import given, strategies as st
 
-from src.domain.core.observable import Observable, ObservableInvariantViolation
+from domain.core.observable import Observable, ObservableInvariantViolation
 
 
 # -------------------------
