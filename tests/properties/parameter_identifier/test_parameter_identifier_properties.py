@@ -1,4 +1,5 @@
 import pytest
+import numpy as np
 
 from domain.core.observable import Observable
 from domain.core.state_variable import StateVariable
@@ -31,7 +32,7 @@ class ConstantGainIdentifier(ParameterIdentifier):
                 name="gain",
                 estimated_value=2.0,
                 uncertainty=0.1,
-                timestamp=ts,
+                timestamp=ts, #type: ignore
                 method="constant_assumption",
                 support=["y"],
             )
@@ -74,7 +75,7 @@ def test_PI3_parameter_timestamp_not_from_future():
                 timestamp=3,
             )
         ],
-        covariance=[[0.2]],
+        covariance=np.array([[0.2]]),
     )
 
     identifier = ConstantGainIdentifier()
@@ -87,10 +88,28 @@ def test_PI3_parameter_timestamp_not_from_future():
     assert params[0].timestamp <= sv.timestamp
 
 
+class BadIdentifier(ParameterIdentifier):
+    def _identify(self, *, observables, state_vector): #type: ignore
+        return [
+            object()
+        ]
+
+
 def test_PI1_identifier_does_not_return_state():
-    identifier = ConstantGainIdentifier()
+    identifier = BadIdentifier()
 
     with pytest.raises(ParameterIdentifierInvariantViolation):
-        identifier._validate_output([StateVariable(
-            name="x", value=1.0, uncertainty=0.1, timestamp=0
-        )])
+        identifier.identify(
+            observables=[],
+            state_vector=StateVector(
+                variables=[
+                    StateVariable(
+                        name="x",
+                        value=1.0,
+                        uncertainty=0.1,
+                        timestamp=0,
+                    )
+                ],
+                covariance=np.array([[0.1]]),
+            ),
+        )

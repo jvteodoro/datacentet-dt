@@ -101,4 +101,5 @@ def test_residual_computation():
         observed_value=8.0,
     )
 
-    assert residual == 2.0
+    # Residual is defined as observed - predicted (innovation form)
+    assert residual == -2.0
