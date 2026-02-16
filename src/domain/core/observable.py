@@ -33,6 +33,7 @@ class Observable:
         name: str,
         value: Any,
         uncertainty: float,
+        confidence: float,
         timestamp: int,
         source: str,
     ):
@@ -47,12 +48,16 @@ class Observable:
 
         if not isinstance(uncertainty, (int, float)) or uncertainty < 0:
             raise ObservableInvariantViolation("O3: uncertainty must be >= 0")
+        
 
         if not isinstance(timestamp, int):
             raise ObservableInvariantViolation("O4: timestamp must be integer")
 
         if not isinstance(source, str) or not source.strip():
             raise ObservableInvariantViolation("O5: invalid source")
+        
+        if not isinstance(confidence, (int, float)) or confidence < 0:
+            raise ObservableInvariantViolation("O6: confidence must be a >= 0 number")
 
         # -------------------------
         # Estado interno (imutável)
@@ -60,6 +65,7 @@ class Observable:
         self._name = name
         self._value = value
         self._uncertainty = uncertainty
+        self._confidence = confidence
         self._timestamp = timestamp
         self._source = source
 
@@ -89,6 +95,10 @@ class Observable:
     def source(self) -> str:
         return self._source
 
+    @property
+    def confidence(self) -> int | float:
+        return self._confidence
+    
     # -------------------------
     # Imutabilidade
     # -------------------------
@@ -112,6 +122,7 @@ class Observable:
             "name": self.name,
             "value": deepcopy(self.value),
             "uncertainty": self.uncertainty,
+            "confidence": self.confidence,
             "timestamp": self.timestamp,
             "source": self.source,
             "epistemic_type": "observed",

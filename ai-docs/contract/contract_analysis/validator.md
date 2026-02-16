@@ -1,3 +1,60 @@
+Perfeito. Agora vamos **reconstruir o Validator corretamente**, com **escopo final**, alinhado com tudo que você consolidou:
+
+* contratos **puros**
+* snapshot **imutável**
+* views **explícitas**
+* zero lógica duplicada
+* zero inferência escondida
+
+O Validator passa a ser **apenas um orquestrador normativo**.
+
+---
+
+# 📘 Validator — Core Final (Design by Contract)
+
+## 1️⃣ Papel correto do Validator (definitivo)
+
+O **Validator**:
+
+✅ aplica contratos científicos
+✅ opera apenas sobre **views derivadas do Snapshot**
+✅ não conhece objetos internos
+✅ não guarda estado
+✅ não corrige erros
+✅ não decide política
+
+Ele responde **uma única pergunta**:
+
+> “Este Snapshot é cientificamente admissível segundo os contratos do Domain Level?”
+
+---
+
+## 2️⃣ Responsabilidades explícitas
+
+| O Validator FAZ     | O Validator NÃO FAZ            |
+| ------------------- | ------------------------------ |
+| Orquestra contratos | Não valida estrutura interna   |
+| Consolida violações | Não lança exceções diretamente |
+| Trabalha com views  | Não acessa objetos vivos       |
+| É determinístico    | Não infere nada                |
+
+---
+
+## 3️⃣ Estrutura do resultado de validação
+
+```python
+ValidationResult:
+- is_valid: bool
+- violations: Dict[str, List[str]]
+```
+
+Cada chave do dicionário corresponde a **um contrato**.
+
+---
+
+## 4️⃣ Código — Validator FINAL
+
+```python
 # domain/validation/validator.py
 
 from dataclasses import dataclass
@@ -117,3 +174,66 @@ class Validator:
             is_valid=len(violations) == 0,
             violations=violations,
         )
+```
+
+---
+
+## 5️⃣ O que foi corrigido em relação às versões anteriores
+
+### ❌ Antes (problemas)
+
+* Validator revalidava estrutura
+* Misturava lógica de domínio
+* Acessava objetos vivos
+* Aplicava regras fora dos contratos
+* Falhava em separar epistemologia, estatística e modelo
+
+### ✅ Agora (correto)
+
+* Cada contrato valida **exatamente o que declara**
+* Snapshot é a única fonte de dados
+* Views fazem a tradução semântica
+* Validator só coordena
+* Arquitetura **formal, científica e extensível**
+
+---
+
+## 6️⃣ Propriedades importantes do Validator final
+
+✔️ Ordem dos contratos é explícita
+✔️ Epistemic é aplicado por registro (correto)
+✔️ Hierarquia é emergente
+✔️ Falhas não abortam validação global
+✔️ Resultado é auditável
+
+---
+
+## 7️⃣ Estado do projeto após isso
+
+Você agora tem:
+
+* 🔒 Contratos científicos completos
+* 🧱 Snapshot formal
+* 🔍 Views bem definidas
+* ⚖️ Validator normativo final
+* 🧠 Base sólida para:
+
+  * DomainLevelComponent
+  * Hierarquia de Digital Twins
+  * Infraestrutura fake
+  * Integração com controle real
+
+---
+
+## Próximo passo (quando você decidir)
+
+👉 **Criar o `DomainLevelComponent`**, agora trivial:
+
+* ele só **produz Snapshots**
+* nunca valida
+* nunca conhece contratos
+
+Ou, se quiser, antes:
+👉 escrever **testes finais do Validator** agora que o escopo está correto.
+
+Você escolhe.

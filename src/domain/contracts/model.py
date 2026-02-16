@@ -118,7 +118,7 @@ class ModelContract:
         if variance <= 0:
             raise ModelInvariantViolation("M1: variance must be positive")
 
-        residual = obs_value - state_value
+        residual = obs_value - state_value[0]
         sigma = np.sqrt(variance)
         normalized = abs(residual / sigma)
 

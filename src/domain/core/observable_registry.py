@@ -43,8 +43,8 @@ class ObservableRegistry:
         self._observables.append(observable)
 
         # Mantém ordenação temporal
-        self._observables.sort(key=lambda o: o.timestamp)
-
+        #self._observables.sort(key=lambda o: o.timestamp)
+        # obs: ordenação temporal é uma operação cara
     # -------------------------------------------------
     # Consultas
     # -------------------------------------------------

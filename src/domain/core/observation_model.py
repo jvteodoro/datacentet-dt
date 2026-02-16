@@ -150,6 +150,12 @@ class ObservationModel(ABC):
     @staticmethod
     def residual(*, predicted: PredictedObservable, observed_value: float) -> float:
         """
-        Residual simples: observado − previsto
+        Residual (innovation) defined as:
+
+            r = y_observed - y_predicted
+
+        This sign convention is consistent with control theory
+        and state estimation (e.g., Kalman filtering).
         """
         return observed_value - predicted.predicted_value
+
