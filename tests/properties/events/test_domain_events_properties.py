@@ -92,6 +92,17 @@ def test_L5_domain_event_repr_includes_class_name_event_id_and_timestamp():
     assert str(event.timestamp) in representation
 
 
+
+
+def test_domain_event_rejects_non_numeric_timestamp():
+    with pytest.raises(TypeError):
+        TaskStartedEvent(task_id="task-1", node_id="node-A", timestamp="not-a-time")
+
+
+def test_domain_event_rejects_non_finite_timestamp():
+    with pytest.raises(ValueError):
+        TaskStartedEvent(task_id="task-1", node_id="node-A", timestamp=float("inf"))
+
 @pytest.mark.parametrize(
     "event",
     [

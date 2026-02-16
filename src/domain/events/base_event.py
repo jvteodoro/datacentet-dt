@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from math import isfinite
+from numbers import Real
 from time import time
 from uuid import UUID, uuid4
 
@@ -10,6 +12,16 @@ from uuid import UUID, uuid4
 class DomainEvent(ABC):
     event_id: UUID = field(default_factory=uuid4)
     timestamp: float = field(default_factory=time)
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.event_id, UUID):
+            raise TypeError("event_id must be a UUID")
+
+        if not isinstance(self.timestamp, Real):
+            raise TypeError("timestamp must be a real scalar")
+
+        if not isfinite(float(self.timestamp)):
+            raise ValueError("timestamp must be finite")
 
     @abstractmethod
     def _event_marker(self) -> None:
