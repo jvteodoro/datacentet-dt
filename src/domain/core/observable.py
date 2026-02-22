@@ -33,7 +33,7 @@ class Observable:
         name: str,
         value: Any,
         uncertainty: float,
-        confidence: float,
+        confidence: float | None = None,
         timestamp: int,
         source: str,
     ):
@@ -56,8 +56,7 @@ class Observable:
         if not isinstance(source, str) or not source.strip():
             raise ObservableInvariantViolation("O5: invalid source")
         
-        if not isinstance(confidence, (int, float)) or confidence < 0:
-            raise ObservableInvariantViolation("O6: confidence must be a >= 0 number")
+        normalized_confidence = self._normalize_confidence(confidence)
 
         # -------------------------
         # Estado interno (imutável)
@@ -65,7 +64,7 @@ class Observable:
         self._name = name
         self._value = value
         self._uncertainty = uncertainty
-        self._confidence = confidence
+        self._confidence = normalized_confidence
         self._timestamp = timestamp
         self._source = source
 
@@ -96,8 +95,23 @@ class Observable:
         return self._source
 
     @property
-    def confidence(self) -> int | float:
+    def confidence(self) -> float:
         return self._confidence
+
+    @staticmethod
+    def _normalize_confidence(confidence: float | None) -> float:
+        """
+        Normaliza a confiança para manter compatibilidade com chamadas legadas.
+
+        Chamadas antigas sem `confidence` recebem valor neutro 1.0.
+        """
+        if confidence is None:
+            return 1.0
+
+        if not isinstance(confidence, (int, float)) or confidence < 0:
+            raise ObservableInvariantViolation("O6: confidence must be a >= 0 number")
+
+        return float(confidence)
     
     # -------------------------
     # Imutabilidade
