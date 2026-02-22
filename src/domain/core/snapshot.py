@@ -13,8 +13,9 @@ Um Snapshot:
 Ele é a única entrada válida para o Validator.
 """
 
-from copy import deepcopy
-from typing import List, Dict, Any, Optional
+import re
+from types import MappingProxyType
+from typing import Any, Dict, List, Optional
 import numpy as np
 
 from domain.core.observable import Observable
@@ -30,6 +31,29 @@ class SnapshotInvariantViolation(Exception):
     nunca erro operacional.
     """
     pass
+
+
+class SoftwareMetadataViolation(SnapshotInvariantViolation):
+    """Violação de metadados estruturais do Software Contract."""
+    pass
+
+
+def _freeze_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return MappingProxyType({k: _freeze_value(v) for k, v in value.items()})
+    if isinstance(value, list):
+        return tuple(_freeze_value(v) for v in value)
+    return value
+
+
+def _thaw_value(value: Any) -> Any:
+    if isinstance(value, MappingProxyType):
+        return {k: _thaw_value(v) for k, v in value.items()}
+    if isinstance(value, tuple):
+        return [_thaw_value(v) for v in value]
+    return value
+
+
 
 
 class Snapshot:
@@ -154,21 +178,45 @@ class Snapshot:
         # Metadados estruturais (imutáveis)
         # -------------------------------------------------
 
+        if not isinstance(component_id, str) or not component_id.strip():
+            raise SoftwareMetadataViolation("SW1: component_id must be a non-empty string")
+
+        if not isinstance(component_type, str) or not component_type.strip():
+            raise SoftwareMetadataViolation("SW1: component_type must be a non-empty string")
+
+        if not isinstance(name, str) or not name.strip():
+            raise SoftwareMetadataViolation("SW1: name must be a non-empty string")
+
+        if not isinstance(version, str) or not version.strip() or not re.fullmatch(r"\d+\.\d+\.\d+", version):
+            raise SoftwareMetadataViolation("SW1: version must follow semantic versioning X.Y.Z")
+
+        if not isinstance(declared_invariants, list):
+            raise SoftwareMetadataViolation("SW1: declared_invariants must be a list")
+
+        if not all(isinstance(inv, str) and inv.strip() for inv in declared_invariants):
+            raise SoftwareMetadataViolation("SW1: declared_invariants must contain non-empty strings")
+
+        if not isinstance(dependencies, list):
+            raise SoftwareMetadataViolation("SW1: dependencies must be a list")
+
+        if not all(isinstance(dep, str) and dep.strip() for dep in dependencies):
+            raise SoftwareMetadataViolation("SW1: dependencies must contain non-empty strings")
+
         self._component_id = component_id
         self._component_type = component_type
         self._name = name
         self._version = version
-        self._declared_invariants = list(declared_invariants or [])
-        self._dependencies = list(dependencies or [])
+        self._declared_invariants = tuple(declared_invariants)
+        self._dependencies = tuple(dependencies)
 
         # -------------------------------------------------
         # Conteúdo epistemológico (imutável)
         # -------------------------------------------------
 
-        self._observables = normalized_observables
-        self._state_vector = normalized_state_vector
-        self._identifiables = normalized_identifiables
-        self._children = list(children) if children else []
+        self._observables = tuple(_freeze_value(obs.to_dict()) for obs in observables)
+        self._state_vector = _freeze_value(state_vector.to_dict()) if state_vector is not None else None
+        self._identifiables = tuple(_freeze_value(ident.to_dict()) for ident in identifiables)
+        self._children = tuple(children) if children else tuple()
 
         # Selo final de imutabilidade
         self._sealed = True
@@ -183,22 +231,15 @@ class Snapshot:
 
     @property
     def observables(self) -> List[Dict]:
-        return deepcopy(self._observables)
+        return [_thaw_value(obs) for obs in self._observables]
 
     @property
     def state_vector(self) -> Dict[str, Any] | None:
-        return deepcopy(self._state_vector)
+        return _thaw_value(self._state_vector) if self._state_vector is not None else None
 
     @property
     def identifiables(self) -> List[Dict]:
-        return deepcopy(self._identifiables)
-
-    @property
-    def parameters(self) -> List[Dict]:
-        """
-        Alias de compatibilidade para o nome legado.
-        """
-        return deepcopy(self._identifiables)
+        return [_thaw_value(ident) for ident in self._identifiables]
 
     @property
     def children(self) -> List["Snapshot"]:
@@ -241,6 +282,7 @@ class Snapshot:
             "name": self._name,
             "version": self._version,
             "declared_invariants": list(self._declared_invariants),
+            "implemented_invariants": ["SW1", "SW2", "SW3", "SW4"],
             "dependencies": list(self._dependencies),
         }
 
@@ -254,8 +296,8 @@ class Snapshot:
         return {
             "timestamp": self._timestamp,
             "previous_timestamp": None,
-            "input_timestamps": [o['timestamp'] for o in self._observables],
-            "state_timestamp": self._state_vector['timestamp'] if self._state_vector else None,
+            "input_timestamps": [_thaw_value(o)['timestamp'] for o in self._observables],
+            "state_timestamp": _thaw_value(self._state_vector)['timestamp'] if self._state_vector else None,
         }
 
     def to_statistical_view(self) -> Dict[str, Any]:
@@ -265,30 +307,30 @@ class Snapshot:
         Declara incertezas SEM assumir distribuição.
         """
         parent_variance = (
-            float(np.trace(self._state_vector['covariance']))
+            float(np.trace(np.array(_thaw_value(self._state_vector)['covariance'])))
             if self._state_vector is not None
             else None
         )
 
         child_variances = [
-            o['uncertainty']
+            _thaw_value(o)['uncertainty']
             for o in self._observables
-            if o['uncertainty'] is not None
+            if _thaw_value(o)['uncertainty'] is not None
         ] or None
 
         confidences_indetifiables = [
-            p['confidence']
+            _thaw_value(p)['confidence']
             for p in self._identifiables
         ]
         
         confidences_observables = [
-            p['confidence'] for p in self._observables
+            _thaw_value(p)['confidence'] for p in self._observables
         ]
-        confidences = confidences_indetifiables.append(confidences_observables)
+        confidences = confidences_indetifiables + confidences_observables
         return {
             "estimate": bool(self._state_vector or self._identifiables),
             "uncertainty": parent_variance,
-            "covariance": self._state_vector['covariance'] if self._state_vector else None,
+            "covariance": _thaw_value(self._state_vector)['covariance'] if self._state_vector else None,
             "confidence": min(confidences) if confidences else None,
             "child_variances": child_variances,
             "parent_variance": parent_variance,
@@ -304,9 +346,10 @@ class Snapshot:
         records: List[Dict[str, Any]] = []
 
         for obs in self._observables:
+            obs_data = _thaw_value(obs)
             records.append({
-                "value": obs['value'],
-                "source": obs['source'],
+                "value": obs_data['value'],
+                "source": obs_data['source'],
                 "method": "direct observation",
                 "justification": "sensor measurement",
                 "confidence": None,
@@ -314,15 +357,16 @@ class Snapshot:
             })
 
         for param in self._identifiables:
+            param_data = _thaw_value(param)
             records.append({
-                "value": param['estimated_value'],
+                "value": param_data['estimated_value'],
                 "source": "parameter_identifier",
-                "method": param['method'],
-                "justification": f"inferred from {param['support']}",
-                "confidence": param['confidence'],
+                "method": param_data['method'],
+                "justification": f"inferred from {param_data['support']}",
+                "confidence": param_data['confidence'],
                 "epistemic_type": "inferred",
                 "child_confidences": [
-                    o['uncertainty'] for o in self._observables if o['uncertainty'] is not None
+                    _thaw_value(o)['uncertainty'] for o in self._observables if _thaw_value(o)['uncertainty'] is not None
                 ] or None,
             })
 
@@ -337,22 +381,22 @@ class Snapshot:
         """
 
         state_value = (
-            [v['value'] for v in self._state_vector['variables']]
+            [v['value'] for v in _thaw_value(self._state_vector)['variables']]
             if self._state_vector else None
         )
 
         state_variance = (
-            float(np.trace(self._state_vector['covariance']))
+            float(np.trace(np.array(_thaw_value(self._state_vector)['covariance'])))
             if self._state_vector else None
         )
 
         observation_value = (
-            self._observables[0]['value']
+            _thaw_value(self._observables[0])['value']
             if self._observables else None
         )
 
         observation_variance = (
-            self._observables[0]['uncertainty']
+            _thaw_value(self._observables[0])['uncertainty']
             if self._observables else None
         )
 
@@ -361,7 +405,7 @@ class Snapshot:
             "state_variance": state_variance,
             "previous_state_variance": None,
 
-            "observations": list(self._observables),
+            "observations": [_thaw_value(o) for o in self._observables],
             "observation_value": observation_value,
             "observation_variance": observation_variance,
 
@@ -398,7 +442,7 @@ class Snapshot:
             }
 
         parent_variance = (
-            float(np.trace(self._state_vector['covariance']))
+            float(np.trace(np.array(_thaw_value(self._state_vector)['covariance'])))
             if self._state_vector else None
         )
 

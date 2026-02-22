@@ -27,11 +27,23 @@ class InternalStateModel:
         identifiable_registry: IdentifiableRegistry,
         state_estimator,
         parameter_identifier,
+        component_id: str,
+        component_type: str,
+        name: str,
+        version: str,
+        declared_invariants: list[str],
+        dependencies: list[str],
     ):
         self._obs_registry = observable_registry
         self._id_registry = identifiable_registry
         self._state_estimator = state_estimator
         self._parameter_identifier = parameter_identifier
+        self._component_id = component_id
+        self._component_type = component_type
+        self._name = name
+        self._version = version
+        self._declared_invariants = list(declared_invariants)
+        self._dependencies = list(dependencies)
 
     # -------------------------------------------------
     # Entrada de dados
@@ -59,9 +71,15 @@ class InternalStateModel:
         for p in params:
             self._id_registry.register(p)
 
-        # Construção de snapshot (ainda sem validação)
+        # Construção de snapshot (respeita validações de metadados)
         return Snapshot(
             observables=observables,
             state_vector=state_vector,
             identifiables=self._id_registry.get_all_current(),
+            component_id=self._component_id,
+            component_type=self._component_type,
+            name=self._name,
+            version=self._version,
+            declared_invariants=list(self._declared_invariants),
+            dependencies=list(self._dependencies),
         )
