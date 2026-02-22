@@ -63,5 +63,5 @@ class InternalStateModel:
         return Snapshot(
             observables=observables,
             state_vector=state_vector,
-            parameters=self._id_registry.get_all_current(),
+            identifiables=self._id_registry.get_all_current(),
         )
