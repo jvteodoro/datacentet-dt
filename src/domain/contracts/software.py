@@ -46,6 +46,7 @@ class SoftwareContract:
     """
 
     _SEMVER_REGEX = re.compile(r"\d+\.\d+\.\d+")
+    _SUPPORTED_INVARIANTS = frozenset({"SW1", "SW2", "SW3", "SW4"})
 
     # ------------------------------------------------------------------
     # Entrada esperada
@@ -74,6 +75,9 @@ class SoftwareContract:
 
         Falha explicitamente com SoftwareViolation.
         """
+
+        if not isinstance(snapshot, dict):
+            raise SoftwareViolation("SW0: snapshot must be a dict")
 
         self._validate_sw1_integrity(snapshot)
         self._validate_sw2_immutability(snapshot)
@@ -109,6 +113,8 @@ class SoftwareContract:
         invariants = snapshot.get("declared_invariants")
         if not isinstance(invariants, list):
             raise SoftwareViolation("SW1: declared_invariants must be a list")
+        if not all(isinstance(inv, str) and inv.strip() for inv in invariants):
+            raise SoftwareViolation("SW1: declared_invariants must contain non-empty strings")
 
     # ------------------------------------------------------------------
     # SW2 — Imutabilidade de contrato
@@ -146,6 +152,22 @@ class SoftwareContract:
         """
 
         declared: List[str] = snapshot.get("declared_invariants", [])
+        implemented = snapshot.get("implemented_invariants")
+
+        if implemented is None:
+            implemented = list(self._SUPPORTED_INVARIANTS)
+
+        if not isinstance(implemented, list):
+            raise SoftwareViolation("SW3: implemented_invariants must be a list")
+
+        if not all(isinstance(inv, str) and inv.strip() for inv in implemented):
+            raise SoftwareViolation("SW3: implemented_invariants must contain non-empty strings")
+
+        undeclared_support = set(declared) - set(implemented)
+        if undeclared_support:
+            raise SoftwareViolation(
+                "SW3: declared invariants must be a subset of implemented invariants"
+            )
 
         if "SW3" in declared:
             raise SoftwareViolation(
