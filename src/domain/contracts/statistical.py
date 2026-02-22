@@ -18,6 +18,11 @@ Pergunta respondida:
 from typing import Any, Dict, List
 import numpy as np
 
+from domain.core.covariance_utils import (
+    CovarianceDomainViolation,
+    validate_psd_covariance,
+)
+
 
 class StatisticalViolation(Exception):
     """
@@ -115,6 +120,9 @@ class StatisticalContract:
         - simétrica
         - semidefinida positiva
 
+        A tolerância numérica para PSD é padronizada em
+        PSD_EIGENVALUE_TOLERANCE = -1e-9.
+
         Esta é uma LEI matemática, não heurística.
         """
 
@@ -122,20 +130,10 @@ class StatisticalContract:
         if cov is None:
             return
 
-        if not isinstance(cov, np.ndarray):
-            raise StatisticalViolation("S2: covariance must be a numpy array")
-
-        if cov.ndim != 2 or cov.shape[0] != cov.shape[1]:
-            raise StatisticalViolation("S2: covariance must be square")
-
-        if not np.allclose(cov, cov.T):
-            raise StatisticalViolation("S2: covariance matrix must be symmetric")
-
-        eigvals = np.linalg.eigvals(cov)
-        if np.any(eigvals < -1e-6):
-            raise StatisticalViolation(
-                "S2: covariance matrix must be positive semidefinite"
-            )
+        try:
+            validate_psd_covariance(cov, context="S2 covariance")
+        except CovarianceDomainViolation as exc:
+            raise StatisticalViolation(str(exc)) from exc
 
     # ------------------------------------------------------------------
     # S3 — Confiança admissível

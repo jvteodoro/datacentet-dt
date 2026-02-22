@@ -113,3 +113,27 @@ def test_SVEC5_epistemic_type_is_state_vector():
 
     data = sv.to_dict()
     assert data["epistemic_type"] == "state_vector"
+
+
+def test_SVEC4_covariance_is_symmetrized_on_creation():
+    v1 = StateVariable(name="x", value=1.0, uncertainty=0.1, timestamp=0)
+    v2 = StateVariable(name="y", value=2.0, uncertainty=0.1, timestamp=0)
+
+    cov = np.array(
+        [
+            [1.0, 0.2],
+            [0.2000000001, 1.0],
+        ]
+    )
+
+    sv = StateVector(variables=[v1, v2], covariance=cov)
+
+    assert np.allclose(sv.covariance, sv.covariance.T)
+
+
+def test_SVEC4_invalid_covariance_raises_clear_domain_message():
+    v = StateVariable(name="x", value=1.0, uncertainty=0.1, timestamp=0)
+    cov = np.array([[-1.0]])
+
+    with pytest.raises(StateVectorInvariantViolation, match="invalid covariance matrix"):
+        StateVector(variables=[v], covariance=cov)
