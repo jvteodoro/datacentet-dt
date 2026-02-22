@@ -13,6 +13,7 @@ Um Snapshot:
 Ele é a única entrada válida para o Validator.
 """
 
+from copy import deepcopy
 from typing import List, Dict, Any, Optional
 import numpy as np
 
@@ -53,18 +54,19 @@ class Snapshot:
     def __init__(
         self,
         *,
-        observables: List[Observable],
-        state_vector: Optional[StateVector],
-        identifiables: List[Identifiable],
+        observables: List[Observable] | List[Dict[str, Any]],
+        state_vector: Optional[StateVector] | Optional[Dict[str, Any]],
+        identifiables: Optional[List[Identifiable] | List[Dict[str, Any]]] = None,
+        parameters: Optional[List[Identifiable] | List[Dict[str, Any]]] = None,
         children: Optional[List["Snapshot"]] = None,
 
         # Metadados estruturais (Software Contract)
-        component_id: str,
-        component_type: str,
-        name: str,
-        version: str,
-        declared_invariants: List[str],
-        dependencies: List[str],
+        component_id: str = "unknown",
+        component_type: str = "unknown",
+        name: str = "Component",
+        version: str = "0.0.0",
+        declared_invariants: Optional[List[str]] = None,
+        dependencies: Optional[List[str]] = None,
     ):
         # -------------------------------------------------
         # Pré-condições estruturais básicas
@@ -73,10 +75,22 @@ class Snapshot:
         if not isinstance(observables, list):
             raise SnapshotInvariantViolation("SN1: observables must be list")
 
-        if state_vector is not None and not isinstance(state_vector, StateVector):
-            raise SnapshotInvariantViolation("SN2: state_vector must be StateVector or None")
+        if state_vector is not None and not isinstance(state_vector, (StateVector, dict)):
+            raise SnapshotInvariantViolation("SN2: state_vector must be StateVector, dict or None")
 
-        if not isinstance(identifiables, list):
+        if identifiables is not None and parameters is not None:
+            raise SnapshotInvariantViolation(
+                "SN3: use either identifiables or parameters, not both"
+            )
+
+        parameters_or_identifiables = (
+            identifiables if identifiables is not None else parameters
+        )
+
+        if parameters_or_identifiables is None:
+            parameters_or_identifiables = []
+
+        if not isinstance(parameters_or_identifiables, list):
             raise SnapshotInvariantViolation("SN3: identifiables must be list")
 
         if children is not None and not isinstance(children, list):
@@ -85,10 +99,14 @@ class Snapshot:
         if not observables and state_vector is None:
             raise SnapshotInvariantViolation("SN5: snapshot requires observables or state")
 
-        if observables and not all(isinstance(o, Observable) for o in observables):
+        if observables and not all(
+            isinstance(o, (Observable, dict)) for o in observables
+        ):
             raise SnapshotInvariantViolation("SN6: invalid observable type")
 
-        if identifiables and not all(isinstance(p, Identifiable) for p in identifiables):
+        if parameters_or_identifiables and not all(
+            isinstance(p, (Identifiable, dict)) for p in parameters_or_identifiables
+        ):
             raise SnapshotInvariantViolation("SN7: invalid identifiable type")
 
         if children:
@@ -103,12 +121,26 @@ class Snapshot:
 
         timestamps = []
 
-        timestamps.extend(o.timestamp for o in observables)
+        normalized_observables = [
+            o.to_dict() if isinstance(o, Observable) else dict(o)
+            for o in observables
+        ]
 
-        if state_vector:
-            timestamps.append(state_vector.timestamp)
+        normalized_state_vector = (
+            state_vector.to_dict() if isinstance(state_vector, StateVector) else state_vector
+        )
 
-        timestamps.extend(p.timestamp for p in identifiables)
+        normalized_identifiables = [
+            p.to_dict() if isinstance(p, Identifiable) else dict(p)
+            for p in parameters_or_identifiables
+        ]
+
+        timestamps.extend(o["timestamp"] for o in normalized_observables)
+
+        if normalized_state_vector:
+            timestamps.append(normalized_state_vector["timestamp"])
+
+        timestamps.extend(p["timestamp"] for p in normalized_identifiables)
 
         if children:
             timestamps.extend(c.timestamp for c in children)
@@ -126,16 +158,16 @@ class Snapshot:
         self._component_type = component_type
         self._name = name
         self._version = version
-        self._declared_invariants = list(declared_invariants)
-        self._dependencies = list(dependencies)
+        self._declared_invariants = list(declared_invariants or [])
+        self._dependencies = list(dependencies or [])
 
         # -------------------------------------------------
         # Conteúdo epistemológico (imutável)
         # -------------------------------------------------
 
-        self._observables = [obs.to_dict() for obs in observables]
-        self._state_vector = state_vector.to_dict() if state_vector is not None else None
-        self._identifiables = [ident.to_dict() for ident in identifiables]
+        self._observables = normalized_observables
+        self._state_vector = normalized_state_vector
+        self._identifiables = normalized_identifiables
         self._children = list(children) if children else []
 
         # Selo final de imutabilidade
@@ -151,19 +183,37 @@ class Snapshot:
 
     @property
     def observables(self) -> List[Dict]:
-        return self._observables
+        return deepcopy(self._observables)
 
     @property
     def state_vector(self) -> Dict[str, Any] | None:
-        return self._state_vector
+        return deepcopy(self._state_vector)
 
     @property
     def identifiables(self) -> List[Dict]:
-        return self._identifiables
+        return deepcopy(self._identifiables)
+
+    @property
+    def parameters(self) -> List[Dict]:
+        """
+        Alias de compatibilidade para o nome legado.
+        """
+        return deepcopy(self._identifiables)
 
     @property
     def children(self) -> List["Snapshot"]:
         return list(self._children)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "timestamp": self._timestamp,
+            "observables": deepcopy(self._observables),
+            "state_vector": deepcopy(self._state_vector),
+            "identifiables": deepcopy(self._identifiables),
+            "parameters": deepcopy(self._identifiables),
+            "children": [child.to_dict() for child in self._children],
+            "software": self.to_software_view(),
+        }
 
     # -------------------------------------------------
     # Imutabilidade forte
