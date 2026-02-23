@@ -118,16 +118,13 @@ class EpistemicContract:
 
         confidence = snapshot.get("confidence")
         epistemic_type = snapshot.get("epistemic_type")
-        print(snapshot)
-        print(snapshot['confidence'])
         if epistemic_type != "observed" and confidence is None:
             raise EpistemicViolation("E2: epistemic confidence must be explicit")
 
-        if epistemic_type is not "observed" and not isinstance(confidence, (int, float)) :
-            print(f"Confidence: [{confidence}] is {isinstance(confidence, (int, float))}")
+        if epistemic_type != "observed" and not isinstance(confidence, (int, float)):
             raise EpistemicViolation("E2: confidence must be numeric")
 
-        if epistemic_type is not "observed" and not (0 < confidence <= 1):
+        if epistemic_type != "observed" and not (0 < confidence <= 1):
             raise EpistemicViolation("E2: confidence must be in (0, 1]")
 
     # ------------------------------------------------------------------

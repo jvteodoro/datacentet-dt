@@ -14,6 +14,7 @@ Ele é a única entrada válida para o Validator.
 """
 
 import re
+from copy import deepcopy
 from types import MappingProxyType
 from typing import Any, Dict, List, Optional
 import numpy as np
@@ -151,7 +152,7 @@ class Snapshot:
         ]
 
         normalized_state_vector = (
-            state_vector.to_dict() if isinstance(state_vector, StateVector) else state_vector
+            state_vector.to_dict() if isinstance(state_vector, StateVector) else dict(state_vector) if state_vector is not None else None
         )
 
         normalized_identifiables = [
@@ -190,11 +191,17 @@ class Snapshot:
         if not isinstance(version, str) or not version.strip() or not re.fullmatch(r"\d+\.\d+\.\d+", version):
             raise SoftwareMetadataViolation("SW1: version must follow semantic versioning X.Y.Z")
 
+        if declared_invariants is None:
+            declared_invariants = []
+
         if not isinstance(declared_invariants, list):
             raise SoftwareMetadataViolation("SW1: declared_invariants must be a list")
 
         if not all(isinstance(inv, str) and inv.strip() for inv in declared_invariants):
             raise SoftwareMetadataViolation("SW1: declared_invariants must contain non-empty strings")
+
+        if dependencies is None:
+            dependencies = []
 
         if not isinstance(dependencies, list):
             raise SoftwareMetadataViolation("SW1: dependencies must be a list")
@@ -213,9 +220,9 @@ class Snapshot:
         # Conteúdo epistemológico (imutável)
         # -------------------------------------------------
 
-        self._observables = tuple(_freeze_value(obs.to_dict()) for obs in observables)
-        self._state_vector = _freeze_value(state_vector.to_dict()) if state_vector is not None else None
-        self._identifiables = tuple(_freeze_value(ident.to_dict()) for ident in identifiables)
+        self._observables = tuple(_freeze_value(obs) for obs in normalized_observables)
+        self._state_vector = _freeze_value(normalized_state_vector) if normalized_state_vector is not None else None
+        self._identifiables = tuple(_freeze_value(ident) for ident in normalized_identifiables)
         self._children = tuple(children) if children else tuple()
 
         # Selo final de imutabilidade
@@ -248,10 +255,10 @@ class Snapshot:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "timestamp": self._timestamp,
-            "observables": deepcopy(self._observables),
-            "state_vector": deepcopy(self._state_vector),
-            "identifiables": deepcopy(self._identifiables),
-            "parameters": deepcopy(self._identifiables),
+            "observables": deepcopy(self.observables),
+            "state_vector": deepcopy(self.state_vector),
+            "identifiables": deepcopy(self.identifiables),
+            "parameters": deepcopy(self.identifiables),
             "children": [child.to_dict() for child in self._children],
             "software": self.to_software_view(),
         }
@@ -298,6 +305,7 @@ class Snapshot:
             "previous_timestamp": None,
             "input_timestamps": [_thaw_value(o)['timestamp'] for o in self._observables],
             "state_timestamp": _thaw_value(self._state_vector)['timestamp'] if self._state_vector else None,
+            "observation_timestamp": _thaw_value(self._observables[0])['timestamp'] if self._observables else None,
         }
 
     def to_statistical_view(self) -> Dict[str, Any]:
