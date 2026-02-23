@@ -6,9 +6,13 @@ Representa o vetor de estado do sistema em um instante lógico.
 
 import numpy as np
 from typing import List, Dict, Any
-from copy import deepcopy
 
 from domain.core.state_variable import StateVariable
+from domain.core.covariance_utils import (
+    CovarianceDomainViolation,
+    symmetrize_covariance,
+    validate_psd_covariance,
+)
 
 
 class StateVectorInvariantViolation(Exception):
@@ -57,33 +61,24 @@ class StateVector:
                 "SVEC3: all variables must share the same timestamp"
             )
 
-        if not isinstance(covariance, np.ndarray):
-            raise StateVectorInvariantViolation(
-                "SVEC4: covariance must be numpy array"
-            )
-
         dim = len(variables)
-        if covariance.shape != (dim, dim):
-            raise StateVectorInvariantViolation(
-                "SVEC4: covariance dimension mismatch"
+        normalized_covariance = symmetrize_covariance(covariance)
+        try:
+            validate_psd_covariance(
+                normalized_covariance,
+                expected_dim=dim,
+                context="SVEC4 covariance",
             )
-
-        if not np.allclose(covariance, covariance.T):
+        except CovarianceDomainViolation as exc:
             raise StateVectorInvariantViolation(
-                "SVEC4: covariance must be symmetric"
-            )
-
-        eigvals = np.linalg.eigvals(covariance)
-        if (eigvals < -1e-8).any():
-            raise StateVectorInvariantViolation(
-                "SVEC4: covariance must be positive semidefinite"
-            )
+                f"SVEC4: invalid covariance matrix: {exc}"
+            ) from exc
 
         # -------------------------
         # Estado interno (imutável)
         # -------------------------
         self._variables = list(variables)
-        self._covariance = covariance.copy()
+        self._covariance = normalized_covariance.copy()
         self._timestamp = variables[0].timestamp
 
         self._sealed = True
