@@ -27,12 +27,12 @@ class InternalStateModel:
         identifiable_registry: IdentifiableRegistry,
         state_estimator,
         parameter_identifier,
-        component_id: str,
-        component_type: str,
-        name: str,
-        version: str,
-        declared_invariants: list[str],
-        dependencies: list[str],
+        component_id: str = "unknown",
+        component_type: str = "unknown",
+        name: str = "Component",
+        version: str = "0.0.0",
+        declared_invariants: list[str] | None = None,
+        dependencies: list[str] | None = None,
     ):
         self._obs_registry = observable_registry
         self._id_registry = identifiable_registry
@@ -42,8 +42,8 @@ class InternalStateModel:
         self._component_type = component_type
         self._name = name
         self._version = version
-        self._declared_invariants = list(declared_invariants)
-        self._dependencies = list(dependencies)
+        self._declared_invariants = list(declared_invariants or [])
+        self._dependencies = list(dependencies or [])
 
     # -------------------------------------------------
     # Entrada de dados

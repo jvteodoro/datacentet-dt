@@ -4,7 +4,7 @@ import numpy as np
 from domain.core.observable import Observable
 from domain.core.state_variable import StateVariable
 from domain.core.state_vector import StateVector
-from domain.core.snapshot import Snapshot
+from domain.core.snapshot import Snapshot, SnapshotInvariantViolation
 from domain.validation.validator import (
     Validator,
     ValidationResult,
@@ -71,14 +71,9 @@ def test_validator_reports_violations():
         covariance=np.array([[0.2]]),
     )
 
-    snap = Snapshot(
-        observables=obs,
-        state_vector=sv,
-        parameters=[],
-    )
-
-    validator = Validator()
-    result = validator.validate(snapshot=snap)
-
-    assert result.is_valid is False
-    assert "Temporal" in result.violations
+    with pytest.raises(SnapshotInvariantViolation, match="SN9"):
+        Snapshot(
+            observables=obs,
+            state_vector=sv,
+            parameters=[],
+        )

@@ -96,12 +96,12 @@ class StatisticalContract:
         - supressão artificial de incerteza
         """
 
-        if "estimate" in snapshot and "uncertainty" not in snapshot:
+        if snapshot.get("estimate") and "uncertainty" not in snapshot:
             raise StatisticalViolation(
                 "S1: estimate declared without explicit uncertainty"
             )
 
-        if snapshot.get("uncertainty") is None and "estimate" in snapshot:
+        if snapshot.get("estimate") and snapshot.get("uncertainty") is None:
             raise StatisticalViolation(
                 "S1: uncertainty must not be None when estimate exists"
             )

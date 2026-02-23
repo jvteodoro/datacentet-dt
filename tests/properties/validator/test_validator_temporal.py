@@ -4,8 +4,7 @@ import numpy as np
 from domain.core.observable import Observable
 from domain.core.state_variable import StateVariable
 from domain.core.state_vector import StateVector
-from domain.core.snapshot import Snapshot
-from domain.validation.validator import Validator
+from domain.core.snapshot import Snapshot, SnapshotInvariantViolation
 
 
 def test_T3_observable_from_future_is_rejected():
@@ -29,13 +28,9 @@ def test_T3_observable_from_future_is_rejected():
         covariance=np.array([[0.2]]),
     )
 
-    snap = Snapshot(
-        observables=[obs],
-        state_vector=sv,
-        parameters=[],
-    )
-
-    result = Validator().validate(snapshot=snap)
-
-    assert not result.is_valid
-    assert "Temporal" in result.violations
+    with pytest.raises(SnapshotInvariantViolation, match="SN9"):
+        Snapshot(
+            observables=[obs],
+            state_vector=sv,
+            parameters=[],
+        )
