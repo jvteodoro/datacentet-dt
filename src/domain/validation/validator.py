@@ -86,12 +86,14 @@ class Validator:
         # -------------------------------------------------
         # Epistemic Contract
         # (aplicado por afirmação de conhecimento)
+        #
+        # Precedência de invariantes:
+        # - Invariantes estruturais (imutabilidade dos objetos do domínio)
+        #   são garantidos na construção dos objetos/snapshot.
+        # - Invariantes semânticos epistêmicos são avaliados aqui, apenas
+        #   sobre a projeção serializada de conhecimento.
         # -------------------------------------------------
-        for idx, record_ep in enumerate(snapshot.to_epistemic_view()):
-            try:
-                EpistemicContract().validate(record_ep)
-            except EpistemicViolation as e:
-                record(f"Epistemic[{idx}]", e)
+        self._validate_epistemic_records(snapshot=snapshot, record=record)
 
         # -------------------------------------------------
         # Model Contract
@@ -117,3 +119,10 @@ class Validator:
             is_valid=len(violations) == 0,
             violations=violations,
         )
+
+    def _validate_epistemic_records(self, *, snapshot: Snapshot, record) -> None:
+        for idx, record_ep in enumerate(snapshot.to_epistemic_view()):
+            try:
+                EpistemicContract().validate(record_ep)
+            except EpistemicViolation as e:
+                record(f"Epistemic[{idx}]", e)
