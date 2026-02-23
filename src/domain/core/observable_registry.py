@@ -7,6 +7,7 @@ Gerencia observações ao longo do tempo.
 from typing import List, Optional
 
 from domain.core.observable import Observable
+from domain.contracts.temporal import TemporalContract
 
 
 class ObservableRegistryViolation(Exception):
@@ -42,9 +43,8 @@ class ObservableRegistry:
         # Não muta observável, apenas armazena
         self._observables.append(observable)
 
-        # Mantém ordenação temporal
-        #self._observables.sort(key=lambda o: o.timestamp)
-        # obs: ordenação temporal é uma operação cara
+        # Mantém ordenação temporal estável para consultas determinísticas
+        self._observables.sort(key=lambda o: o.timestamp)
     # -------------------------------------------------
     # Consultas
     # -------------------------------------------------
@@ -68,10 +68,10 @@ class ObservableRegistry:
 
         return [
             o for o in self._observables
-            if o.timestamp >= timestamp
+            if not TemporalContract.is_future(current=o.timestamp, candidate=timestamp)
         ]
 
     def latest_timestamp(self) -> Optional[int]:
         if not self._observables:
             return None
-        return self._observables[-1].timestamp
+        return max(o.timestamp for o in self._observables)

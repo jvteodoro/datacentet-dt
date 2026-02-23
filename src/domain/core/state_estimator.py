@@ -11,6 +11,7 @@ from typing import List, Optional
 from domain.core.state_vector import StateVector
 from domain.core.observable import Observable
 from domain.core.observation_model import ObservationModel
+from domain.contracts.temporal import TemporalContract, TemporalViolation
 
 
 class StateEstimatorInvariantViolation(Exception):
@@ -76,10 +77,14 @@ class StateEstimator(ABC):
             )
 
         if previous_state is not None:
-            if new_state.timestamp < previous_state.timestamp:
-                raise StateEstimatorInvariantViolation(
-                    "SE3: state timestamp regressed"
+            try:
+                TemporalContract.ensure_non_regressive(
+                    previous=previous_state.timestamp,
+                    current=new_state.timestamp,
+                    code="SE3",
                 )
+            except TemporalViolation as exc:
+                raise StateEstimatorInvariantViolation(str(exc)) from exc
 
         return new_state
 
