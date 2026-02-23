@@ -21,6 +21,8 @@ Este é o PRIMEIRO ponto onde falhas cruzadas podem emergir.
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterable, Optional
 
+from domain.contracts.temporal import TemporalContract
+
 
 class DomainLevelViolation(Exception):
     """
@@ -245,9 +247,12 @@ class DomainLevel(ABC):
             child.validate_domain_level()
 
             # Pai não pode estar temporalmente à frente do filho
-            if child.state_timestamp() > self.state_timestamp():
+            if TemporalContract.is_future(
+                current=self.state_timestamp(),
+                candidate=child.state_timestamp(),
+            ):
                 raise DomainLevelViolation(
-                    "Hierarchy violation: parent sees child future"
+                    "H2: parent temporal context precedes child context"
                 )
 
         # 2. Validar consistência interna do próprio nível

@@ -12,6 +12,8 @@ Pergunta respondida:
 
 from typing import Any, Dict, List
 
+from domain.contracts.temporal import TemporalContract
+
 
 class HierarchyInvariantViolation(Exception):
     """
@@ -112,7 +114,7 @@ class HierarchyContract:
         if parent_time is None or child_times is None:
             return
 
-        if any(parent_time < t for t in child_times):
+        if any(TemporalContract.is_future(current=parent_time, candidate=t) for t in child_times):
             raise HierarchyInvariantViolation(
                 "H2: parent temporal context precedes child context"
             )

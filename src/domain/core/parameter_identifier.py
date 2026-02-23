@@ -11,6 +11,7 @@ from typing import List, Optional
 from domain.core.observable import Observable
 from domain.core.state_vector import StateVector
 from domain.core.identifiable import Identifiable
+from domain.contracts.temporal import TemporalContract
 
 
 class ParameterIdentifierInvariantViolation(Exception):
@@ -95,15 +96,15 @@ class ParameterIdentifier(ABC):
 
             if observables:
                 max_ts = max(o.timestamp for o in observables)
-                if p.timestamp > max_ts:
+                if TemporalContract.is_future(current=max_ts, candidate=p.timestamp):
                     raise ParameterIdentifierInvariantViolation(
-                        "PI3: parameter timestamp from future (observables)"
+                        "PI3: future data is not causally admissible (observables)"
                     )
 
             if state_vector:
-                if p.timestamp > state_vector.timestamp:
+                if TemporalContract.is_future(current=state_vector.timestamp, candidate=p.timestamp):
                     raise ParameterIdentifierInvariantViolation(
-                        "PI3: parameter timestamp from future (state)"
+                        "PI3: future data is not causally admissible (state)"
                     )
 
     # -------------------------------------------------

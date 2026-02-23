@@ -67,6 +67,31 @@ class TemporalContract:
         self._validate_T3_causality(snapshot)
         self._validate_T4_alignment(snapshot)
 
+    @staticmethod
+    def is_future(*, current: int, candidate: int) -> bool:
+        """
+        Regra temporal canônica:
+        candidate > current caracteriza dado do futuro.
+
+        Igualdade (candidate == current) é admissível.
+        """
+
+        return candidate > current
+
+    @classmethod
+    def ensure_non_regressive(cls, *, previous: int, current: int, code: str) -> None:
+        """Valida monotonicidade canônica: current >= previous."""
+
+        if cls.is_future(current=current, candidate=previous):
+            raise TemporalViolation(f"{code}: temporal regression detected")
+
+    @classmethod
+    def ensure_not_future(cls, *, current: int, candidate: int, code: str) -> None:
+        """Valida causalidade canônica: candidate <= current."""
+
+        if cls.is_future(current=current, candidate=candidate):
+            raise TemporalViolation(f"{code}: future data is not causally admissible")
+
     # ------------------------------------------------------------------
     # T1 — Existência de contexto temporal válido
     # ------------------------------------------------------------------
@@ -117,8 +142,7 @@ class TemporalContract:
         if not isinstance(previous, int):
             raise TemporalViolation("T2: previous_timestamp must be integer")
 
-        if current < previous:
-            raise TemporalViolation("T2: temporal regression detected")
+        self.ensure_non_regressive(previous=previous, current=current, code="T2")
 
     # ------------------------------------------------------------------
     # T3 — Causalidade temporal
@@ -146,8 +170,7 @@ class TemporalContract:
             if not isinstance(t, int):
                 raise TemporalViolation("T3: input timestamp must be integer")
 
-            if t > now:
-                raise TemporalViolation("T3: future data is not causally admissible")
+            self.ensure_not_future(current=now, candidate=t, code="T3")
 
     # ------------------------------------------------------------------
     # T4 — Alinhamento temporal
