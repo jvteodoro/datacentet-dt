@@ -32,6 +32,8 @@ class WorkloadRecord:
     server_idx: int
     cpu_demand: float
     memory_demand: float
+    remaining_size: float
+    cpu_usage_rate: float
 
 
 @dataclass(slots=True)
@@ -46,4 +48,7 @@ class TwinState:
     active_flows: dict[str, FlowRecord] = field(default_factory=dict)
     cpu_usage: list[float] = field(default_factory=list)
     memory_usage: list[float] = field(default_factory=list)
+    server_workload_count: list[int] = field(default_factory=list)
     active_workloads: dict[str, WorkloadRecord] = field(default_factory=dict)
+    active_link_indices: set[int] = field(default_factory=set)
+    active_server_indices: set[int] = field(default_factory=set)

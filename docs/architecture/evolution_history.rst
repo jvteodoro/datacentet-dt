@@ -34,3 +34,56 @@ Justification
 The shift from physical to logical immutability was justified by hyperscale constraints:
 flow transition cost must remain proportional to affected path size, not total network size,
 while replay determinism and pre-commit validation guarantees remain intact.
+
+Phase 3 — Compute Cluster Engine
+--------------------------------
+
+- Added immutable compute topology + dynamic compute usage arrays.
+- Added sparse workload lifecycle tracking with local rollback.
+- Preserved :math:`O(1)` workload start/end transitions.
+
+Phase 4 — Temporal Evolution Engine
+-----------------------------------
+
+- Introduced explicit ``Tick`` event for discrete-time progression.
+- Added active-entity tracking:
+
+  - ``active_link_indices`` for backlog drain locality
+  - ``active_server_indices`` for active compute locality
+
+- Added temporal drain/progress laws:
+
+  - network backlog drains by capacity over ``delta_time``
+  - workload remaining demand decreases by ``cpu_usage_rate * delta_time``
+
+- Tick transition applies local in-place updates with transition-local rollback
+  and modified-entity validation only.
+
+Structural vs dynamic evolution
+-------------------------------
+
+- Structural evolution remains event-driven and mostly append-style
+  (nodes/links/servers).
+- Dynamic evolution now includes both causal events (flow/workload start/end)
+  and temporal events (tick progression).
+
+Trade-offs
+----------
+
+- Modeling time as explicit events increases event volume under fine-grained
+  simulation.
+- In return, replay determinism is preserved and temporal work remains sparse,
+  bounded by active entities rather than full graph/server cardinality.
+
+Phase 4.1 — Deterministic Ordering Canonicalization
+----------------------------------------------------
+
+- Canonicalized Tick iteration over active temporal collections.
+- Replaced implicit set/dict traversal with explicit sorted traversal for:
+
+  - ``active_link_indices``
+  - ``active_workloads`` keys
+
+- Preserved active-only locality and rollback discipline.
+- Elevated determinism posture from functional replay equivalence to structural
+  iteration canonicalization in temporal evolution loops.

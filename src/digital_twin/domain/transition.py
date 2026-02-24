@@ -21,11 +21,6 @@ class TransitionCandidate:
             action()
 
 
-# Architectural alignment:
-# - system_blueprint: sparse event-driven evolution with deterministic H.
-# - performance_budget: strict local updates for flow/workload events.
-# - determinism_and_replay: sequential deterministic evolution.
-# - flow_level_contracts: local link/server constraints feed V before commit.
 def apply_transition(state: TwinState, event: DomainEvent) -> TransitionCandidate:
     event_type = event.type
     payload = event.payload
@@ -116,10 +111,15 @@ def apply_transition(state: TwinState, event: DomainEvent) -> TransitionCandidat
             raise ValueError("path endpoints do not match src/dst")
 
         old_values: list[tuple[int, float]] = []
+        old_active_links: list[tuple[int, bool]] = []
         for i in range(len(path) - 1):
             link_id = _link_idx(topology.link_index, path[i], path[i + 1])
-            old_values.append((link_id, state.link_backlog[link_id]))
-            state.link_backlog[link_id] += rate
+            old_backlog = state.link_backlog[link_id]
+            old_values.append((link_id, old_backlog))
+            old_active_links.append((link_id, link_id in state.active_link_indices))
+            state.link_backlog[link_id] = old_backlog + rate
+            if old_backlog == 0.0 and state.link_backlog[link_id] > 0.0:
+                state.active_link_indices.add(link_id)
             modified_links.append(link_id)
 
         flow_record = FlowRecord(
@@ -133,6 +133,7 @@ def apply_transition(state: TwinState, event: DomainEvent) -> TransitionCandidat
         modified_flows.append(flow_id)
 
         rollback_actions.append(lambda saved=tuple(old_values): _restore_backlog(state.link_backlog, saved))
+        rollback_actions.append(lambda saved=tuple(old_active_links): _restore_set_membership(state.active_link_indices, saved))
         rollback_actions.append(lambda fid=flow_id: state.active_flows.pop(fid, None))
 
     elif event_type == "FlowEnded":
@@ -142,16 +143,22 @@ def apply_transition(state: TwinState, event: DomainEvent) -> TransitionCandidat
             raise ValueError(f"unknown flow: {flow_id}")
 
         old_values: list[tuple[int, float]] = []
+        old_active_links: list[tuple[int, bool]] = []
         for i in range(len(flow.path) - 1):
             link_id = _link_idx(topology.link_index, flow.path[i], flow.path[i + 1])
-            old_values.append((link_id, state.link_backlog[link_id]))
-            state.link_backlog[link_id] -= flow.rate
+            old_backlog = state.link_backlog[link_id]
+            old_values.append((link_id, old_backlog))
+            old_active_links.append((link_id, link_id in state.active_link_indices))
+            state.link_backlog[link_id] = old_backlog - flow.rate
+            if state.link_backlog[link_id] == 0.0:
+                state.active_link_indices.discard(link_id)
             modified_links.append(link_id)
 
         del state.active_flows[flow_id]
         modified_flows.append(flow_id)
 
         rollback_actions.append(lambda saved=tuple(old_values): _restore_backlog(state.link_backlog, saved))
+        rollback_actions.append(lambda saved=tuple(old_active_links): _restore_set_membership(state.active_link_indices, saved))
         rollback_actions.append(lambda fid=flow_id, rec=flow: state.active_flows.__setitem__(fid, rec))
 
     elif event_type == "AddServer":
@@ -176,6 +183,7 @@ def apply_transition(state: TwinState, event: DomainEvent) -> TransitionCandidat
         old_compute_topology = state.compute_topology
         old_cpu_usage_len = len(state.cpu_usage)
         old_memory_usage_len = len(state.memory_usage)
+        old_workload_count_len = len(state.server_workload_count)
 
         state.compute_topology = ComputeTopology(
             server_index=server_index,
@@ -185,10 +193,12 @@ def apply_transition(state: TwinState, event: DomainEvent) -> TransitionCandidat
         )
         state.cpu_usage.append(0.0)
         state.memory_usage.append(0.0)
+        state.server_workload_count.append(0)
 
         rollback_actions.append(lambda old=old_compute_topology: setattr(state, "compute_topology", old))
         rollback_actions.append(lambda length=old_cpu_usage_len: _truncate_list(state.cpu_usage, length))
         rollback_actions.append(lambda length=old_memory_usage_len: _truncate_list(state.memory_usage, length))
+        rollback_actions.append(lambda length=old_workload_count_len: _truncate_int_list(state.server_workload_count, length))
         modified_servers.append(server_idx)
 
     elif event_type == "WorkloadStarted":
@@ -199,24 +209,34 @@ def apply_transition(state: TwinState, event: DomainEvent) -> TransitionCandidat
         server_idx = _server_idx(compute_topology.server_index, str(payload["server_id"]))
         cpu_demand = float(payload["cpu_demand"])
         memory_demand = float(payload["memory_demand"])
+        remaining_size = float(payload.get("size", cpu_demand))
+        cpu_usage_rate = float(payload.get("cpu_usage_rate", cpu_demand))
 
         old_cpu = state.cpu_usage[server_idx]
         old_memory = state.memory_usage[server_idx]
+        old_count = state.server_workload_count[server_idx]
+        old_active = server_idx in state.active_server_indices
 
-        state.cpu_usage[server_idx] += cpu_demand
-        state.memory_usage[server_idx] += memory_demand
+        state.cpu_usage[server_idx] = old_cpu + cpu_demand
+        state.memory_usage[server_idx] = old_memory + memory_demand
+        state.server_workload_count[server_idx] = old_count + 1
+        state.active_server_indices.add(server_idx)
         modified_servers.append(server_idx)
 
         workload = WorkloadRecord(
             server_idx=server_idx,
             cpu_demand=cpu_demand,
             memory_demand=memory_demand,
+            remaining_size=remaining_size,
+            cpu_usage_rate=cpu_usage_rate,
         )
         state.active_workloads[workload_id] = workload
         modified_workloads.append(workload_id)
 
         rollback_actions.append(
-            lambda idx=server_idx, cpu=old_cpu, mem=old_memory: _restore_server_usage(state, idx, cpu, mem)
+            lambda idx=server_idx, cpu=old_cpu, mem=old_memory, count=old_count, active=old_active: _restore_server_activity(
+                state, idx, cpu, mem, count, active
+            )
         )
         rollback_actions.append(lambda wid=workload_id: state.active_workloads.pop(wid, None))
 
@@ -229,18 +249,94 @@ def apply_transition(state: TwinState, event: DomainEvent) -> TransitionCandidat
         server_idx = workload.server_idx
         old_cpu = state.cpu_usage[server_idx]
         old_memory = state.memory_usage[server_idx]
+        old_count = state.server_workload_count[server_idx]
+        old_active = server_idx in state.active_server_indices
 
-        state.cpu_usage[server_idx] -= workload.cpu_demand
-        state.memory_usage[server_idx] -= workload.memory_demand
+        state.cpu_usage[server_idx] = old_cpu - workload.cpu_demand
+        state.memory_usage[server_idx] = old_memory - workload.memory_demand
+        state.server_workload_count[server_idx] = old_count - 1
+        if state.server_workload_count[server_idx] == 0:
+            state.active_server_indices.discard(server_idx)
         modified_servers.append(server_idx)
 
         del state.active_workloads[workload_id]
         modified_workloads.append(workload_id)
 
         rollback_actions.append(
-            lambda idx=server_idx, cpu=old_cpu, mem=old_memory: _restore_server_usage(state, idx, cpu, mem)
+            lambda idx=server_idx, cpu=old_cpu, mem=old_memory, count=old_count, active=old_active: _restore_server_activity(
+                state, idx, cpu, mem, count, active
+            )
         )
         rollback_actions.append(lambda wid=workload_id, rec=workload: state.active_workloads.__setitem__(wid, rec))
+
+    elif event_type == "Tick":
+        delta_time = float(payload["delta_time"])
+        if delta_time < 0:
+            raise ValueError("delta_time must be >= 0")
+
+        link_old_values: list[tuple[int, float]] = []
+        link_old_active: list[tuple[int, bool]] = []
+        for link_id in sorted(state.active_link_indices):
+            old_backlog = state.link_backlog[link_id]
+            link_old_values.append((link_id, old_backlog))
+            link_old_active.append((link_id, True))
+            drained = min(state.topology.link_capacity[link_id] * delta_time, old_backlog)
+            new_backlog = old_backlog - drained
+            state.link_backlog[link_id] = new_backlog
+            if new_backlog == 0.0:
+                state.active_link_indices.discard(link_id)
+            modified_links.append(link_id)
+
+        completed_workloads: list[tuple[str, WorkloadRecord]] = []
+        workload_old_records: list[tuple[str, WorkloadRecord]] = []
+        server_old_state: dict[int, tuple[float, float, int, bool]] = {}
+
+        for workload_id in sorted(state.active_workloads):
+            workload = state.active_workloads[workload_id]
+            server_idx = workload.server_idx
+            if server_idx not in server_old_state:
+                server_old_state[server_idx] = (
+                    state.cpu_usage[server_idx],
+                    state.memory_usage[server_idx],
+                    state.server_workload_count[server_idx],
+                    server_idx in state.active_server_indices,
+                )
+
+            drained = workload.cpu_usage_rate * delta_time
+            remaining_size = workload.remaining_size - drained
+
+            if remaining_size <= 0.0:
+                completed_workloads.append((workload_id, workload))
+                del state.active_workloads[workload_id]
+                state.cpu_usage[server_idx] -= workload.cpu_demand
+                state.memory_usage[server_idx] -= workload.memory_demand
+                state.server_workload_count[server_idx] -= 1
+                if state.server_workload_count[server_idx] == 0:
+                    state.active_server_indices.discard(server_idx)
+            else:
+                updated_workload = WorkloadRecord(
+                    server_idx=workload.server_idx,
+                    cpu_demand=workload.cpu_demand,
+                    memory_demand=workload.memory_demand,
+                    remaining_size=remaining_size,
+                    cpu_usage_rate=workload.cpu_usage_rate,
+                )
+                workload_old_records.append((workload_id, workload))
+                state.active_workloads[workload_id] = updated_workload
+
+            modified_workloads.append(workload_id)
+            modified_servers.append(server_idx)
+
+        rollback_actions.append(lambda saved=tuple(link_old_values): _restore_backlog(state.link_backlog, saved))
+        rollback_actions.append(lambda saved=tuple(link_old_active): _restore_set_membership(state.active_link_indices, saved))
+
+        rollback_actions.append(
+            lambda saved=tuple(completed_workloads): [state.active_workloads.__setitem__(wid, rec) for wid, rec in saved]
+        )
+        rollback_actions.append(
+            lambda saved=tuple(workload_old_records): [state.active_workloads.__setitem__(wid, rec) for wid, rec in saved]
+        )
+        rollback_actions.append(lambda saved=dict(server_old_state): _restore_servers_bulk(state, saved))
 
     state.version_counter = old_version + 1
     state.event_counter = old_event + 1
@@ -249,10 +345,10 @@ def apply_transition(state: TwinState, event: DomainEvent) -> TransitionCandidat
 
     return TransitionCandidate(
         state=state,
-        modified_link_indices=tuple(modified_links),
-        modified_flow_ids=tuple(modified_flows),
-        modified_server_indices=tuple(modified_servers),
-        modified_workload_ids=tuple(modified_workloads),
+        modified_link_indices=tuple(dict.fromkeys(modified_links)),
+        modified_flow_ids=tuple(dict.fromkeys(modified_flows)),
+        modified_server_indices=tuple(dict.fromkeys(modified_servers)),
+        modified_workload_ids=tuple(dict.fromkeys(modified_workloads)),
         rollback_actions=tuple(rollback_actions),
     )
 
@@ -261,14 +357,43 @@ def _truncate_list(items: list[float], length: int) -> None:
     del items[length:]
 
 
+def _truncate_int_list(items: list[int], length: int) -> None:
+    del items[length:]
+
+
 def _restore_backlog(backlog: list[float], saved: tuple[tuple[int, float], ...]) -> None:
     for link_id, old_value in saved:
         backlog[link_id] = old_value
 
 
-def _restore_server_usage(state: TwinState, server_idx: int, cpu_value: float, memory_value: float) -> None:
+def _restore_set_membership(index_set: set[int], saved: tuple[tuple[int, bool], ...]) -> None:
+    for item, was_member in saved:
+        if was_member:
+            index_set.add(item)
+        else:
+            index_set.discard(item)
+
+
+def _restore_server_activity(
+    state: TwinState,
+    server_idx: int,
+    cpu_value: float,
+    memory_value: float,
+    workload_count: int,
+    was_active: bool,
+) -> None:
     state.cpu_usage[server_idx] = cpu_value
     state.memory_usage[server_idx] = memory_value
+    state.server_workload_count[server_idx] = workload_count
+    if was_active:
+        state.active_server_indices.add(server_idx)
+    else:
+        state.active_server_indices.discard(server_idx)
+
+
+def _restore_servers_bulk(state: TwinState, saved: dict[int, tuple[float, float, int, bool]]) -> None:
+    for server_idx, (cpu_value, memory_value, workload_count, was_active) in saved.items():
+        _restore_server_activity(state, server_idx, cpu_value, memory_value, workload_count, was_active)
 
 
 def _node_idx(node_index: dict[str, int], node_id: str) -> int:

@@ -65,6 +65,8 @@ def validate_state(candidate: Union[TwinState, TransitionCandidate]) -> None:
             raise StateValidationError(
                 f"cpu_usage must be <= cpu_capacity (server={server_idx}, usage={cpu}, capacity={cpu_capacity})"
             )
+        if state.server_workload_count[server_idx] < 0:
+            raise StateValidationError(f"server_workload_count must be >= 0 (server={server_idx})")
         if memory > memory_capacity:
             raise StateValidationError(
                 "memory_usage must be <= memory_capacity "
@@ -79,3 +81,7 @@ def validate_state(candidate: Union[TwinState, TransitionCandidate]) -> None:
             raise StateValidationError(f"workload cpu_demand must be >= 0 (workload={workload_id})")
         if workload.memory_demand < 0:
             raise StateValidationError(f"workload memory_demand must be >= 0 (workload={workload_id})")
+        if workload.remaining_size < 0:
+            raise StateValidationError(f"workload remaining_size must be >= 0 (workload={workload_id})")
+        if workload.cpu_usage_rate < 0:
+            raise StateValidationError(f"workload cpu_usage_rate must be >= 0 (workload={workload_id})")

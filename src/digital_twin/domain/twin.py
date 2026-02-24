@@ -46,7 +46,10 @@ class DataCenterTwin:
             active_flows=dict(self._state.active_flows),
             cpu_usage=list(self._state.cpu_usage),
             memory_usage=list(self._state.memory_usage),
+            server_workload_count=list(self._state.server_workload_count),
             active_workloads=dict(self._state.active_workloads),
+            active_link_indices=set(self._state.active_link_indices),
+            active_server_indices=set(self._state.active_server_indices),
         )
 
     @property
