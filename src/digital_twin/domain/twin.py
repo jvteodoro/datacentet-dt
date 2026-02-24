@@ -41,8 +41,12 @@ class DataCenterTwin:
             version_counter=self._state.version_counter,
             event_counter=self._state.event_counter,
             topology=self._state.topology,
+            compute_topology=self._state.compute_topology,
             link_backlog=list(self._state.link_backlog),
             active_flows=dict(self._state.active_flows),
+            cpu_usage=list(self._state.cpu_usage),
+            memory_usage=list(self._state.memory_usage),
+            active_workloads=dict(self._state.active_workloads),
         )
 
     @property

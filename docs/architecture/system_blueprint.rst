@@ -430,3 +430,59 @@ Safety rationale:
 
 This evolution preserves correctness guarantees while reducing flow-event transition cost
 toward strict locality over affected path elements.
+
+17. Compute Engine — Hyperscale Logical Model
+---------------------------------------------
+
+Phase 3 introduces a compute engine that follows the same deterministic,
+logical-immutability discipline established for the flow engine.
+
+Structural vs dynamic compute separation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Compute structure is immutable after construction and represented as:
+
+- ``ComputeTopology.server_index``
+- ``ComputeTopology.reverse_server_index``
+- ``ComputeTopology.cpu_capacity``
+- ``ComputeTopology.memory_capacity``
+
+Dynamic compute state remains mutable only inside the deterministic core loop:
+
+- ``cpu_usage`` (per-server current CPU usage)
+- ``memory_usage`` (per-server current memory usage)
+- ``active_workloads`` (workload lifecycle map)
+
+This preserves the snapshot immutability boundary while enabling strictly local
+updates in event transitions.
+
+Local rollback discipline
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For workload transitions, :math:`H` records pre-update usage values for the
+single target server, applies in-place mutation, and validates only modified
+server indices.
+
+On validation failure, rollback restores:
+
+- original server cpu/memory usage values
+- workload map insertion/removal side effects
+- version and event counters
+
+No speculative global correction is allowed.
+
+Complexity guarantees
+~~~~~~~~~~~~~~~~~~~~~
+
+Compute-event complexity is constrained to local entity scope:
+
+- ``WorkloadStarted``: :math:`O(1)`
+- ``WorkloadEnded``: :math:`O(1)`
+- server validation: modified server only
+
+Network-event guarantees remain unchanged:
+
+- flow transition work: :math:`O(path\_length)`
+- no global scans over links, flows, servers, or workloads in event paths
+
+This keeps the hyperscale contract aligned with sparse, event-driven evolution.
