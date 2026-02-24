@@ -1,0 +1,10 @@
+digraph DomainGraph {
+  rankdir=LR;
+  TwinState -> NetworkTopology;
+  TwinState -> FlowRecord;
+  DataCenterTwin -> TwinState;
+  DataCenterTwin -> TransitionCandidate;
+  DataCenterTwin -> TwinSnapshot;
+  TransitionCandidate -> TwinState;
+  TwinSnapshot -> TwinState [style=dashed,label="projection"];
+}

@@ -1,0 +1,10 @@
+digraph ValidatorGraph {
+  rankdir=TB;
+  Validator -> SoftwareContract;
+  Validator -> TemporalContract;
+  Validator -> StatisticalContract;
+  Validator -> EpistemicContract;
+  Validator -> ModelContract;
+  Validator -> HierarchyContract;
+  Validator -> ValidationResult;
+}
