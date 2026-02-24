@@ -62,7 +62,7 @@ The domain implements:
 
 .. math::
 
-   (X, E, H, V)
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
 
 ---
 
@@ -219,7 +219,7 @@ The domain implements:
 
 .. math::
 
-   (X, E, H, V)
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
 
 Infrastructure only supplies E.
 

@@ -64,7 +64,7 @@ The complete Digital Twin is defined as:
 
 .. math::
 
-   \text{DigitalTwin} = (X, E, H, V)
+   \text{System} = (X, E, H, V, \mathcal{I}, \mathcal{O})
 
 Where:
 

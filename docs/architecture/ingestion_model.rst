@@ -150,7 +150,7 @@ No global recomputation is allowed.
 7. Real-Time Operation Model
 -----------------------------
 
-The ingestion loop operates continuously:
+The ingestion loop operates continuously with strict ordering:
 
 ::
 
@@ -158,11 +158,17 @@ The ingestion loop operates continuously:
         read event from Kafka
         normalize event
         validate timestamp ordering
-        twin.ingest_event(event)
-        snapshot = twin.get_snapshot()
-        publish snapshot to observers
+        X_candidate = H(X_t, event)
+        validity = V(X_candidate)
+        if validity == valid:
+            persist event
+            update snapshot from validated state
+            update inference window (read-only derived view)
+            publish snapshot to observers
+        else:
+            reject event (no persist/snapshot/window update)
 
-Inference and optimization may run at window intervals.
+Inference and optimization may run at window intervals, but only from validated persisted history.
 
 The Digital Twin Core must remain synchronous and deterministic.
 
@@ -176,8 +182,9 @@ Concurrency may exist outside the domain.
 Snapshots are:
 
 - Immutable
-- Derived views of state
+- Derived artifacts of validated state
 - Consistent across subsystems
+- Never a source of truth
 
 Snapshots must support:
 
@@ -196,12 +203,15 @@ Replay mode replaces Kafka ingestion with stored event logs.
 
 Replay procedure:
 
-1. Initialize fresh Digital Twin.
-2. Load recorded event sequence.
-3. Inject events in original order.
-4. Compare final snapshot.
+1. Initialize fresh Digital Twin (or validated snapshot baseline).
+2. Load recorded event sequence in original order.
+3. Reapply events through ingestion :math:`\rightarrow H \rightarrow V`.
+4. Execute deterministic inference and deterministic optimization to reproduce emitted control events.
+5. Compare final snapshot and emitted outputs.
 
-Replay must produce identical state.
+Replay must produce identical state and identical validated outputs.
+
+If inference/optimization are excluded, the run must be labeled limited replay mode (domain-only replay).
 
 If mismatch occurs, determinism is violated.
 
@@ -319,3 +329,15 @@ The ingestion model ensures:
 - Efficient sparse updates
 
 This architecture allows the Digital Twin to operate continuously alongside a real data center.
+
+Architecture Alignment Note
+---------------------------
+
+This document conforms to the canonical model:
+
+.. math::
+
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
+
+It preserves the determinism rule: identical initial state, identical ordered event sequence, identical initial parameter vector :math:`\theta_0`, and identical inference/optimization seeds must produce identical final state, validation outcomes, terminal :math:`\theta_n`, and control actions :math:`u_n`.
+

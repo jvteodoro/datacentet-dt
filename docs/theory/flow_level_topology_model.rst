@@ -36,7 +36,7 @@ The system remains defined as:
 
 .. math::
 
-   DigitalTwin = (X, E, H, V)
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
 
 Where:
 
