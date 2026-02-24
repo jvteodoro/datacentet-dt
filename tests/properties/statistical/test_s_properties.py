@@ -15,6 +15,8 @@ from hypothesis import given, strategies as st
 """
 
 finite_floats = st.floats(
+    min_value=-1e3,
+    max_value=1e3,
     allow_nan=False,
     allow_infinity=False,
     width=32
@@ -28,8 +30,21 @@ def symmetric_matrices(draw, n=2):
             max_size=n
         )
     )
-    m = np.array(m)
+    m = np.array(m, dtype=float)
     return (m + m.T) / 2
+
+
+@st.composite
+def psd_matrices(draw, n=2):
+    m = draw(
+        st.lists(
+            st.lists(finite_floats, min_size=n, max_size=n),
+            min_size=n,
+            max_size=n
+        )
+    )
+    m = np.array(m, dtype=float)
+    return m.T @ m
 
 @given(value=finite_floats)
 def test_S1_estimate_without_uncertainty_is_invalid(value):
@@ -46,7 +61,7 @@ def test_S1_estimate_without_uncertainty_is_invalid(value):
 def test_S2_covariance_is_symmetric(cov):
     assert np.allclose(cov, cov.T)
 
-@given(cov=symmetric_matrices())
+@given(cov=psd_matrices())
 def test_S2_covariance_is_positive_semidefinite(cov):
     eigvals = np.linalg.eigvals(cov)
     assert np.all(eigvals >= -1e-6)

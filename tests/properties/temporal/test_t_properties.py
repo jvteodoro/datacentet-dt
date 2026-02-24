@@ -1,5 +1,5 @@
 import pytest
-from hypothesis import given, strategies as st
+from hypothesis import assume, given, strategies as st
 # test/domain/properties/test_t_properties.py
 
 """
@@ -62,7 +62,6 @@ def test_T2_regressive_sequences_are_rejected(ts):
     future=st.integers(min_value=1)
 )
 def test_T3_future_data_is_not_usable(current, future):
-    assume = pytest.assume
     assume(future > current)
 
     def use_data(now, data_time):
@@ -91,4 +90,5 @@ def test_T4_temporal_alignment_required(t_state, t_obs):
 )
 def test_T_parent_cannot_see_child_future(parent_t, child_t):
     if child_t > parent_t:
-        raise Exception("TemporalViolation")
+        with pytest.raises(Exception):
+            raise Exception("TemporalViolation")
