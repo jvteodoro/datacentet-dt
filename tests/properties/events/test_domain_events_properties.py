@@ -26,7 +26,7 @@ def test_L2_domain_events_have_unique_identity_when_event_id_is_not_provided():
     events = [
         TaskStartedEvent(task_id="task-1", node_id="node-A"),
         TaskCompletedEvent(task_id="task-1", node_id="node-A"),
-        WorkloadSubmittedEvent(workload_id="wl-1", source="src-1"),
+        WorkloadSubmittedEvent(workload_id="wl-1", source="src-1", destination="dst-1", payload_size=1.0),
         WorkloadDeliveredEvent(
             workload_id="wl-1",
             source="src-1",
@@ -41,7 +41,7 @@ def test_L2_domain_events_have_unique_identity_when_event_id_is_not_provided():
 
 def test_L3_domain_events_can_be_sorted_in_ascending_temporal_order():
     unordered_events = [
-        WorkloadSubmittedEvent(workload_id="wl-1", source="src", timestamp=3.0),
+        WorkloadSubmittedEvent(workload_id="wl-1", source="src", destination="dst", payload_size=1.0, timestamp=3.0),
         TaskStartedEvent(task_id="task-1", node_id="node-A", timestamp=1.0),
         TaskCompletedEvent(task_id="task-1", node_id="node-A", timestamp=2.0),
     ]
@@ -83,6 +83,8 @@ def test_L5_domain_event_repr_includes_class_name_event_id_and_timestamp():
         timestamp=42.5,
         workload_id="wl-1",
         source="src-1",
+        destination="dst-1",
+        payload_size=1.0,
     )
 
     representation = repr(event)
@@ -108,7 +110,7 @@ def test_domain_event_rejects_non_finite_timestamp():
     [
         TaskStartedEvent(task_id="task-1", node_id="node-A"),
         TaskCompletedEvent(task_id="task-1", node_id="node-A"),
-        WorkloadSubmittedEvent(workload_id="wl-1", source="src-1"),
+        WorkloadSubmittedEvent(workload_id="wl-1", source="src-1", destination="dst-1", payload_size=1.0),
         WorkloadDeliveredEvent(
             workload_id="wl-1",
             source="src-1",
