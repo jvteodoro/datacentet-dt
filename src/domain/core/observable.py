@@ -4,6 +4,7 @@ Observable — Domain Core Object (BASELINE v1.0)
 Representa uma grandeza diretamente observável do mundo.
 """
 
+from collections.abc import Mapping, Iterator
 from typing import Any, Dict
 from copy import deepcopy
 
@@ -15,7 +16,7 @@ class ObservableInvariantViolation(Exception):
     pass
 
 
-class Observable:
+class Observable(Mapping[str, Any]):
     """
     Observable (Design by Contract).
 
@@ -141,3 +142,16 @@ class Observable:
             "source": self.source,
             "epistemic_type": "observed",
         }
+
+    # -------------------------
+    # Compatibilidade com Mapping
+    # -------------------------
+
+    def __getitem__(self, key: str) -> Any:
+        return self.to_dict()[key]
+
+    def __iter__(self) -> Iterator[str]:
+        return iter(self.to_dict())
+
+    def __len__(self) -> int:
+        return len(self.to_dict())

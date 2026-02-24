@@ -170,7 +170,8 @@ class TemporalContract:
             if not isinstance(t, int):
                 raise TemporalViolation("T3: input timestamp must be integer")
 
-            self.ensure_not_future(current=now, candidate=t, code="T3")
+            if t >= now:
+                raise TemporalViolation("T3: future data is not causally admissible")
 
     # ------------------------------------------------------------------
     # T4 — Alinhamento temporal
