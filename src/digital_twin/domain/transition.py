@@ -4,7 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from .event import DomainEvent
-from .state import FlowRecord, NetworkTopology, TwinState
+from .state import ComputeTopology, FlowRecord, NetworkTopology, TwinState, WorkloadRecord
 
 
 @dataclass(frozen=True, slots=True)
@@ -12,6 +12,8 @@ class TransitionCandidate:
     state: TwinState
     modified_link_indices: tuple[int, ...] = ()
     modified_flow_ids: tuple[str, ...] = ()
+    modified_server_indices: tuple[int, ...] = ()
+    modified_workload_ids: tuple[str, ...] = ()
     rollback_actions: tuple[Callable[[], None], ...] = field(default_factory=tuple)
 
     def rollback(self) -> None:
@@ -21,19 +23,19 @@ class TransitionCandidate:
 
 # Architectural alignment:
 # - system_blueprint: sparse event-driven evolution with deterministic H.
-# - performance_budget: strict local updates for flow events.
+# - performance_budget: strict local updates for flow/workload events.
 # - determinism_and_replay: sequential deterministic evolution.
-# - flow_level_contracts: local link/flow constraints feed V before commit.
-# Expected complexity:
-# O(path_length) for FlowStarted/FlowEnded transition work
-# O(1) validation over modified collections only
+# - flow_level_contracts: local link/server constraints feed V before commit.
 def apply_transition(state: TwinState, event: DomainEvent) -> TransitionCandidate:
     event_type = event.type
     payload = event.payload
 
     topology = state.topology
+    compute_topology = state.compute_topology
     modified_links: list[int] = []
     modified_flows: list[str] = []
+    modified_servers: list[int] = []
+    modified_workloads: list[str] = []
     rollback_actions: list[Callable[[], None]] = []
 
     old_version = state.version_counter
@@ -152,6 +154,94 @@ def apply_transition(state: TwinState, event: DomainEvent) -> TransitionCandidat
         rollback_actions.append(lambda saved=tuple(old_values): _restore_backlog(state.link_backlog, saved))
         rollback_actions.append(lambda fid=flow_id, rec=flow: state.active_flows.__setitem__(fid, rec))
 
+    elif event_type == "AddServer":
+        server_id = str(payload["server_id"])
+        if server_id in compute_topology.server_index:
+            raise ValueError(f"server already exists: {server_id}")
+
+        cpu_capacity = float(payload["cpu_capacity"])
+        memory_capacity = float(payload["memory_capacity"])
+
+        server_index = dict(compute_topology.server_index)
+        reverse_server_index = list(compute_topology.reverse_server_index)
+        cpu_capacity_values = list(compute_topology.cpu_capacity)
+        memory_capacity_values = list(compute_topology.memory_capacity)
+
+        server_idx = len(reverse_server_index)
+        server_index[server_id] = server_idx
+        reverse_server_index.append(server_id)
+        cpu_capacity_values.append(cpu_capacity)
+        memory_capacity_values.append(memory_capacity)
+
+        old_compute_topology = state.compute_topology
+        old_cpu_usage_len = len(state.cpu_usage)
+        old_memory_usage_len = len(state.memory_usage)
+
+        state.compute_topology = ComputeTopology(
+            server_index=server_index,
+            reverse_server_index=tuple(reverse_server_index),
+            cpu_capacity=tuple(cpu_capacity_values),
+            memory_capacity=tuple(memory_capacity_values),
+        )
+        state.cpu_usage.append(0.0)
+        state.memory_usage.append(0.0)
+
+        rollback_actions.append(lambda old=old_compute_topology: setattr(state, "compute_topology", old))
+        rollback_actions.append(lambda length=old_cpu_usage_len: _truncate_list(state.cpu_usage, length))
+        rollback_actions.append(lambda length=old_memory_usage_len: _truncate_list(state.memory_usage, length))
+        modified_servers.append(server_idx)
+
+    elif event_type == "WorkloadStarted":
+        workload_id = str(payload["workload_id"])
+        if workload_id in state.active_workloads:
+            raise ValueError(f"workload already exists: {workload_id}")
+
+        server_idx = _server_idx(compute_topology.server_index, str(payload["server_id"]))
+        cpu_demand = float(payload["cpu_demand"])
+        memory_demand = float(payload["memory_demand"])
+
+        old_cpu = state.cpu_usage[server_idx]
+        old_memory = state.memory_usage[server_idx]
+
+        state.cpu_usage[server_idx] += cpu_demand
+        state.memory_usage[server_idx] += memory_demand
+        modified_servers.append(server_idx)
+
+        workload = WorkloadRecord(
+            server_idx=server_idx,
+            cpu_demand=cpu_demand,
+            memory_demand=memory_demand,
+        )
+        state.active_workloads[workload_id] = workload
+        modified_workloads.append(workload_id)
+
+        rollback_actions.append(
+            lambda idx=server_idx, cpu=old_cpu, mem=old_memory: _restore_server_usage(state, idx, cpu, mem)
+        )
+        rollback_actions.append(lambda wid=workload_id: state.active_workloads.pop(wid, None))
+
+    elif event_type == "WorkloadEnded":
+        workload_id = str(payload["workload_id"])
+        workload = state.active_workloads.get(workload_id)
+        if workload is None:
+            raise ValueError(f"unknown workload: {workload_id}")
+
+        server_idx = workload.server_idx
+        old_cpu = state.cpu_usage[server_idx]
+        old_memory = state.memory_usage[server_idx]
+
+        state.cpu_usage[server_idx] -= workload.cpu_demand
+        state.memory_usage[server_idx] -= workload.memory_demand
+        modified_servers.append(server_idx)
+
+        del state.active_workloads[workload_id]
+        modified_workloads.append(workload_id)
+
+        rollback_actions.append(
+            lambda idx=server_idx, cpu=old_cpu, mem=old_memory: _restore_server_usage(state, idx, cpu, mem)
+        )
+        rollback_actions.append(lambda wid=workload_id, rec=workload: state.active_workloads.__setitem__(wid, rec))
+
     state.version_counter = old_version + 1
     state.event_counter = old_event + 1
     rollback_actions.append(lambda value=old_version: setattr(state, "version_counter", value))
@@ -161,6 +251,8 @@ def apply_transition(state: TwinState, event: DomainEvent) -> TransitionCandidat
         state=state,
         modified_link_indices=tuple(modified_links),
         modified_flow_ids=tuple(modified_flows),
+        modified_server_indices=tuple(modified_servers),
+        modified_workload_ids=tuple(modified_workloads),
         rollback_actions=tuple(rollback_actions),
     )
 
@@ -174,6 +266,11 @@ def _restore_backlog(backlog: list[float], saved: tuple[tuple[int, float], ...])
         backlog[link_id] = old_value
 
 
+def _restore_server_usage(state: TwinState, server_idx: int, cpu_value: float, memory_value: float) -> None:
+    state.cpu_usage[server_idx] = cpu_value
+    state.memory_usage[server_idx] = memory_value
+
+
 def _node_idx(node_index: dict[str, int], node_id: str) -> int:
     if node_id not in node_index:
         raise ValueError(f"unknown node: {node_id}")
@@ -185,3 +282,9 @@ def _link_idx(link_index: dict[tuple[int, int], int], src_idx: int, dst_idx: int
     if edge not in link_index:
         raise ValueError(f"unknown link: {edge}")
     return link_index[edge]
+
+
+def _server_idx(server_index: dict[str, int], server_id: str) -> int:
+    if server_id not in server_index:
+        raise ValueError(f"unknown server: {server_id}")
+    return server_index[server_id]
