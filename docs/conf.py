@@ -1,8 +1,10 @@
 """Sphinx configuration for datacentet-dt documentation."""
 from __future__ import annotations
 from datetime import datetime
+import importlib
 import os
 import sys
+import types
 
 project = "datacentet-dt"
 author = "datacentet-dt contributors"
@@ -11,8 +13,32 @@ copyright = f"{current_year}, {author}"
 release = "0.1.0"
 version = release
 
-sys.path.insert(0, os.path.abspath('..'))
-sys.path.insert(0, os.path.abspath('../src'))
+ROOT_DIR = os.path.abspath('..')
+SRC_DIR = os.path.abspath('../src')
+sys.path.insert(0, ROOT_DIR)
+sys.path.insert(0, SRC_DIR)
+
+
+def _configure_digital_twin_namespace_alias() -> None:
+    """Expose ``digital_twin.*`` aliases for docs without changing source layout."""
+    if "digital_twin" in sys.modules:
+        return
+
+    package = types.ModuleType("digital_twin")
+    package.__path__ = [SRC_DIR]
+    sys.modules["digital_twin"] = package
+
+    for subpackage in ("application", "domain"):
+        try:
+            module = importlib.import_module(subpackage)
+        except ModuleNotFoundError:
+            continue
+
+        setattr(package, subpackage, module)
+        sys.modules[f"digital_twin.{subpackage}"] = module
+
+
+_configure_digital_twin_namespace_alias()
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -33,4 +59,3 @@ html_static_path = ["_static"]
 autodoc_typehints = 'description'
 
 master_doc = "index"
-
