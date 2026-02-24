@@ -87,3 +87,23 @@ Phase 4.1 — Deterministic Ordering Canonicalization
 - Preserved active-only locality and rollback discipline.
 - Elevated determinism posture from functional replay equivalence to structural
   iteration canonicalization in temporal evolution loops.
+
+Phase 5 — Event Store & Persistence Architecture
+------------------------------------------------
+
+- Introduced persistence ports:
+
+  - ``EventStore`` (append/load/load_from)
+  - ``SnapshotStore`` (save/load_latest)
+
+- Refactored ``DataCenterTwin`` from internal in-memory event list to
+  event-store-backed persistence with snapshot interval policy.
+- Added deterministic recovery flow:
+
+  - load latest snapshot
+  - replay events after snapshot version
+
+- Preserved deterministic transition/validation ordering and logical
+  immutability boundaries.
+- Established integration path for future Kafka-backed event transport and
+  durable persistence adapters.

@@ -612,3 +612,51 @@ Scientific reproducibility rationale
 Explicit canonical ordering upgrades determinism from functional behavior to
 structural execution reproducibility for temporal loops, reinforcing
 cross-environment replay integrity.
+
+13. Event Sourcing & Persistence Model (Phase 5)
+-------------------------------------------------
+
+Phase 5 formalizes persistence as explicit ports with deterministic in-memory
+adapters.
+
+Canonical source of truth
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- The append-only Event Store is the canonical system history.
+- Domain state is reconstructed exclusively from persisted events (optionally
+  accelerated by snapshots).
+- Infrastructure persistence remains replaceable as long as ordering and
+  deterministic replay semantics are preserved.
+
+Snapshot acceleration model
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Recovery uses the deterministic sequence:
+
+::
+
+   snapshot = SnapshotStore.load_latest()
+   if snapshot:
+       X = snapshot_state
+       replay(EventStore.load_from(snapshot.version_counter))
+   else:
+       X = initial_state
+       replay(EventStore.load_all())
+
+Snapshots are immutable projections, not transition inputs; transition logic and
+validation semantics remain unchanged.
+
+Deterministic recovery process
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Replay order is insertion order from the Event Store.
+- Tick/event canonical ordering inside transitions is unchanged.
+- Recover cycles are idempotent with respect to final state for identical event
+  histories.
+
+Domain vs infrastructure separation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Domain transition/validation code remains persistence-agnostic.
+- Application ports define persistence contracts.
+- Infrastructure adapters implement those ports without changing domain rules.
