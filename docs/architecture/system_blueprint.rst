@@ -404,3 +404,29 @@ The Digital Twin architecture provides:
 
 The system is not a dashboard.
 It is a mathematically grounded, scalable, adaptive Digital Twin platform.
+
+16. Architectural Evolution: Physical vs Logical Immutability
+--------------------------------------------------------------
+
+Initial phases adopted physical immutability (new container instances per state transition)
+to maximize auditability and reduce hidden mutation risk.
+
+At hyperscale flow churn, physical immutability on dynamic containers became insufficient
+because full-container copy paths increase event cost with global state size.
+
+Phase 2.2 adopts controlled logical immutability in the deterministic single-threaded core:
+
+- Internal state containers for dynamic fields may be mutable.
+- Validation remains mandatory before commit side effects.
+- On validation failure, transition-local rollback restores prior values.
+- External immutability boundary is preserved by immutable snapshots.
+
+Safety rationale:
+
+- Domain execution is sequential (no concurrent writers in core loop).
+- Replay ordering is fixed and deterministic.
+- Rollback scope is restricted to modified entities.
+- Snapshot export remains immutable and non-aliasing.
+
+This evolution preserves correctness guarantees while reducing flow-event transition cost
+toward strict locality over affected path elements.

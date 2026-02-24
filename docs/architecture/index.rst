@@ -6,6 +6,7 @@ Architecture
 
    architecture_consistency_report
    contracts
+   evolution_history
    hexagonal_design
    inference_architecture_model
    ingestion_model

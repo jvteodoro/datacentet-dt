@@ -1,28 +1,28 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
+from typing import Union
 from time import perf_counter_ns
 
 from .event import DomainEvent, normalize_event
 from .metrics import MetricsCollector
 from .snapshot import TwinSnapshot, build_snapshot
 from .state import TwinState
-from .transition import apply_transition
+from .transition import TransitionCandidate, apply_transition
 from .validation import validate_state
 
 
 class DataCenterTwin:
-    """Deterministic event-sourced core for Phase 1."""
+    """Deterministic event-sourced core for the data center twin."""
 
     def __init__(
         self,
         *,
-        transition_fn: Callable[[TwinState, DomainEvent], TwinState] = apply_transition,
-        validator_fn: Callable[[TwinState], None] = validate_state,
+        transition_fn: Callable[[TwinState, DomainEvent], Union[TwinState, TransitionCandidate]] = apply_transition,
+        validator_fn: Callable[[Union[TwinState, TransitionCandidate]], None] = validate_state,
         normalizer_fn: Callable[[DomainEvent], DomainEvent] = normalize_event,
     ) -> None:
-        self._initial_state = TwinState()
-        self._state = self._initial_state
+        self._state = _build_initial_state()
         self._snapshot = build_snapshot(self._state)
         self._event_log: list[DomainEvent] = []
         self._metrics = MetricsCollector()
@@ -36,7 +36,14 @@ class DataCenterTwin:
 
     @property
     def state(self) -> TwinState:
-        return self._state
+        # Logical immutability boundary: expose copied dynamic containers only.
+        return TwinState(
+            version_counter=self._state.version_counter,
+            event_counter=self._state.event_counter,
+            topology=self._state.topology,
+            link_backlog=list(self._state.link_backlog),
+            active_flows=dict(self._state.active_flows),
+        )
 
     @property
     def metrics(self) -> MetricsCollector:
@@ -49,13 +56,18 @@ class DataCenterTwin:
         normalized_event = self._normalizer_fn(event)
 
         # 2) X_candidate = H(X_current, event)
-        candidate_state = self._transition_fn(self._state, normalized_event)
+        candidate = self._transition_fn(self._state, normalized_event)
 
         # 3) V(X_candidate) -> valid or error
-        self._validator_fn(candidate_state)
+        try:
+            self._validator_fn(candidate)
+        except Exception:
+            if isinstance(candidate, TransitionCandidate):
+                candidate.rollback()
+            raise
 
         # 4) If valid: commit state -> append event log -> update snapshot -> update metrics
-        self._state = candidate_state
+        self._state = candidate.state if isinstance(candidate, TransitionCandidate) else candidate
         self._event_log.append(normalized_event)
         self._snapshot = build_snapshot(self._state)
         self._metrics.record_ingestion_latency(perf_counter_ns() - started_ns)
@@ -64,10 +76,14 @@ class DataCenterTwin:
         return self._snapshot
 
     def replay(self, event_sequence: Iterable[DomainEvent]) -> None:
-        self._state = self._initial_state
+        self._state = _build_initial_state()
         self._snapshot = build_snapshot(self._state)
         self._event_log = []
         self._metrics = MetricsCollector()
 
         for event in event_sequence:
             self.ingest_event(event)
+
+
+def _build_initial_state() -> TwinState:
+    return TwinState()
