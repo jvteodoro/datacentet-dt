@@ -120,7 +120,7 @@ The domain layer implements:
 
 .. math::
 
-   (X, E, H, V)
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
 
 It contains:
 

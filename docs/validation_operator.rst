@@ -20,7 +20,7 @@ The Digital Twin is defined as:
 
 .. math::
 
-   \text{DigitalTwin} = (X, E, H, V)
+   \text{System} = (X, E, H, V, \mathcal{I}, \mathcal{O})
 
 Where:
 
@@ -267,7 +267,7 @@ The Digital Twin is defined as:
 
 .. math::
 
-   (X, E, H, V)
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
 
 Where:
 

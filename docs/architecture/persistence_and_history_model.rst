@@ -364,3 +364,15 @@ Persistence completes the Digital Twin system:
    (X, E, H, V, \mathcal{I}, \mathcal{O})
 
 with historical memory.
+
+Architecture Alignment Note
+---------------------------
+
+This document conforms to the canonical model:
+
+.. math::
+
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
+
+It preserves the determinism rule: identical initial state and identical ordered event sequence must produce identical final state and validation outcomes.
+

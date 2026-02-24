@@ -371,3 +371,15 @@ The flow-level contracts guarantee:
 - Scientific auditability.
 
 These contracts generalize the MVP invariants to a hyperscale, graph-based Digital Twin.
+
+Architecture Alignment Note
+---------------------------
+
+This document conforms to the canonical model:
+
+.. math::
+
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
+
+It preserves the determinism rule: identical initial state and identical ordered event sequence must produce identical final state and validation outcomes.
+

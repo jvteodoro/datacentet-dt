@@ -98,7 +98,7 @@ Mandatory Tests:
 
 Gate:
 
-Per-event latency must not scale with |V| or |E|.
+Per-event latency must not scale with :math:`|V|` or :math:`|E|`.
 
 ---
 
@@ -300,7 +300,7 @@ Performance Metrics:
 
 Failure Conditions:
 
-- Latency grows with |V|
+- Latency grows with :math:`|V|`
 - Memory grows unbounded
 - Replay mismatch
 - Contract violation
@@ -391,3 +391,15 @@ This roadmap ensures:
 No phase may be skipped.
 
 Load validation is not optional.
+
+Architecture Alignment Note
+---------------------------
+
+This document conforms to the canonical model:
+
+.. math::
+
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
+
+It preserves the determinism rule: identical initial state and identical ordered event sequence must produce identical final state and validation outcomes.
+

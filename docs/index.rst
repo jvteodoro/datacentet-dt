@@ -1,37 +1,98 @@
-datacentet-dt Documentation
-===========================
+Data Center Digital Twin Documentation
+======================================
 
-Portal principal da documentação científica, de arquitetura e de engenharia.
+System philosophy
+-----------------
+
+The project is a determinism-first, event-sourced digital twin for hyperscale data center reasoning.
+
+Canonical formal model:
+
+.. math::
+
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
+
+High-level architecture diagram
+-------------------------------
+
+::
+
+    +---------------------+      +------------------+
+    | Infrastructure      | ---> | Ingestion        |
+    | (sensors, streams)  |      | (normalize/order)|
+    +---------------------+      +---------+--------+
+                                            |
+                                            v
+                                  +---------+--------+
+                                  | Domain Core      |
+                                  | (X, E, H, V)     |
+                                  +----+--------+----+
+                                       |        |
+                                       v        v
+                               +-------+--+  +--+----------------+
+                               | Inference |  | Persistence       |
+                               |   𝓘       |  | event log/snapshot|
+                               +-----+-----+  +-------------------+
+                                     |
+                                     v
+                               +-----+-----+
+                               | Optimization|
+                               |     𝓞       |
+                               +-----+------+
+                                     |
+                                     v
+                                control events
+                                     |
+                                     +--> ingestion
+
+Key references
+--------------
+
+- Architecture blueprint: :doc:`architecture/system_blueprint`
+- Performance budget: :doc:`engineering/performance_budget`
+- Implementation roadmap: :doc:`engineering/implementation_roadmap`
+
+Navigation
+----------
 
 .. toctree::
    :maxdepth: 2
    :caption: Theory
 
-   theory/system_model
-   theory/event_dynamics
-   theory/validation_operator
-   theory/flow_level_contracts.rst
-   theory/flow_level_topology_model.rst
+   theory/index
 
 .. toctree::
    :maxdepth: 2
    :caption: Architecture
 
-   architecture/hexagonal_design
-   architecture/contracts
-   architecture/inference_architecture_model.rst
-   architecture/ingestion_model.rst
+   architecture/index
 
 .. toctree::
    :maxdepth: 2
    :caption: Engineering
 
-   engineering/determinism_and_replay
-   engineering/directory_structure
-   engineering/codex_guidelines
+   engineering/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Performance
+
+   performance/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Testing
+
+   testing/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Documentation Structure
+
+   structure/index
 
 .. toctree::
    :maxdepth: 2
    :caption: API Reference
 
-   api/modules
+   api/index

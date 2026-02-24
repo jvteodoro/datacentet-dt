@@ -12,7 +12,7 @@ It is a mathematically defined system:
 
 .. math::
 
-   DigitalTwin = (X, E, H, V)
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
 
 Where:
 
@@ -253,6 +253,6 @@ Any generated code must preserve:
 
 .. math::
 
-   (X, E, H, V)
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
 
 This document protects the long-term integrity of the system.

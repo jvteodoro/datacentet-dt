@@ -319,3 +319,15 @@ The ingestion model ensures:
 - Efficient sparse updates
 
 This architecture allows the Digital Twin to operate continuously alongside a real data center.
+
+Architecture Alignment Note
+---------------------------
+
+This document conforms to the canonical model:
+
+.. math::
+
+   System = (X, E, H, V, \mathcal{I}, \mathcal{O})
+
+It preserves the determinism rule: identical initial state and identical ordered event sequence must produce identical final state and validation outcomes.
+
