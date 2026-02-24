@@ -5,32 +5,29 @@ Portal principal da documentação científica, de arquitetura e de engenharia.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Teoria
+   :caption: Theory
 
-   theory/event_dynamics
    theory/system_model
+   theory/event_dynamics
    theory/validation_operator
 
 .. toctree::
    :maxdepth: 2
-   :caption: Arquitetura
+   :caption: Architecture
 
-   architecture/contracts
    architecture/hexagonal_design
+   architecture/contracts
 
 .. toctree::
    :maxdepth: 2
-   :caption: Engenharia
+   :caption: Engineering
 
-   engineering/codex_guidelines
    engineering/determinism_and_replay
    engineering/directory_structure
+   engineering/codex_guidelines
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Referências adicionais
+   :maxdepth: 2
+   :caption: API Reference
 
-   event_dynamics
-   hexagonal_design
-   system_model
-   validation_operator
+   api/modules
