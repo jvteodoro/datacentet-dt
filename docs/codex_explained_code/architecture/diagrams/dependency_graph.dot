@@ -1,0 +1,10 @@
+digraph DependencyGraph {
+  rankdir=LR;
+  Domain [shape=box];
+  Application [shape=box];
+  Infrastructure [shape=box];
+  Validator [shape=box];
+  Application -> Domain;
+  Infrastructure -> Domain;
+  Validator -> Domain;
+}
