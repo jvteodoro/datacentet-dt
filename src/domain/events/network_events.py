@@ -19,6 +19,7 @@ class WorkloadDeliveredEvent(DomainEvent):
     workload_id: str
     source: str
     destination: str
+    required_cycles: float = 1.0
 
     def _event_marker(self) -> None:
         return None
