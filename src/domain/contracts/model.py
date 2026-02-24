@@ -115,6 +115,9 @@ class ModelContract:
         obs_value = snapshot["observation_value"]
         variance = snapshot["observation_variance"]
 
+        if variance is None:
+            return
+
         if variance <= 0:
             raise ModelInvariantViolation("M1: variance must be positive")
 

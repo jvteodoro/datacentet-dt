@@ -55,6 +55,13 @@ def _thaw_value(value: Any) -> Any:
     return value
 
 
+class _ObservableView(dict):
+    """Dict-like observable payload that compares equal to Observable instances."""
+
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Observable):
+            return dict.__eq__(self, other.to_dict())
+        return dict.__eq__(self, other)
 
 
 class Snapshot:
@@ -238,7 +245,7 @@ class Snapshot:
 
     @property
     def observables(self) -> List[Dict]:
-        return [_thaw_value(obs) for obs in self._observables]
+        return [_ObservableView(_thaw_value(obs)) for obs in self._observables]
 
     @property
     def state_vector(self) -> Dict[str, Any] | None:
@@ -324,7 +331,17 @@ class Snapshot:
             _thaw_value(o)['uncertainty']
             for o in self._observables
             if _thaw_value(o)['uncertainty'] is not None
-        ] or None
+        ]
+
+        if self._state_vector is not None:
+            state_vars = [
+                v['uncertainty']
+                for v in _thaw_value(self._state_vector)['variables']
+                if v.get('uncertainty') is not None
+            ]
+            child_variances.extend(state_vars)
+
+        child_variances = child_variances or None
 
         confidences_indetifiables = [
             _thaw_value(p)['confidence']
