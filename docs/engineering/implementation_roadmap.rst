@@ -401,5 +401,21 @@ This document conforms to the canonical model:
 
    System = (X, E, H, V, \mathcal{I}, \mathcal{O})
 
-It preserves the determinism rule: identical initial state and identical ordered event sequence must produce identical final state and validation outcomes.
+It preserves the determinism rule: identical initial state :math:`X_0`, identical ordered event sequence :math:`(e_1, \dots, e_n)`, identical initial parameter vector :math:`\theta_0`, and identical inference/optimization seeds must produce identical :math:`X_n`, validation outcomes, :math:`\theta_n`, and control actions :math:`u_n`.
 
+
+
+Replay Semantics Clarification
+------------------------------
+
+Replay mode must reapply events through ingestion :math:`\rightarrow H \rightarrow V`, then execute deterministic inference and deterministic optimization, and reproduce emitted control events.
+
+If inference/optimization are intentionally excluded, the run must be labeled limited replay mode and is valid only for domain-state determinism checks.
+
+Validation and persistence ordering is mandatory per event:
+
+::
+
+    normalize -> H -> V -> persist -> snapshot update -> inference window update
+
+If :math:`V(X_{t+1})` is not valid, the event must not be persisted and must not update snapshot or inference windows.

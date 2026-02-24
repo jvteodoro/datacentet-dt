@@ -60,7 +60,7 @@ Responsibilities:
 - Communicate with IoT devices
 - Collect telemetry
 - Publish events to Kafka
-- Persist logs and snapshots
+- Persist validated events and validated snapshots
 - Provide synthetic event generators
 
 Must NOT:
@@ -318,14 +318,18 @@ Operational loop:
 
     read event
     normalize
-    ingest
-    validate
-    snapshot
+    H
+    V
+    if valid: persist
+    if valid: snapshot update
+    if valid: inference window update
     inference (windowed)
     optimization (windowed)
     emit control actions
 
 Domain execution remains synchronous and deterministic.
+
+Invalid transitions must not be persisted and must not trigger snapshot or inference-window updates.
 
 Parallelism may exist outside domain.
 
@@ -336,15 +340,17 @@ Parallelism may exist outside domain.
 
 Given identical:
 
-- Initial state
-- Event sequence
-- Initial parameters
+- Initial state :math:`X_0`
+- Ordered event sequence :math:`(e_1, \dots, e_n)`
+- Initial parameter vector :math:`\theta_0`
+- Identical inference and optimization seeds (if applicable)
 
 The system must produce identical:
 
-- State X_t
-- Parameter vector θ_t
-- Control actions u_t
+- State :math:`X_n`
+- Validation outcomes
+- Parameter vector :math:`\theta_n`
+- Control actions :math:`u_n`
 
 Determinism is non-negotiable.
 

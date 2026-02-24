@@ -329,5 +329,19 @@ This document conforms to the canonical model:
 
    System = (X, E, H, V, \mathcal{I}, \mathcal{O})
 
-It preserves the determinism rule: identical initial state and identical ordered event sequence must produce identical final state and validation outcomes.
+It preserves the determinism rule: identical initial state, identical ordered event sequence, identical initial parameter vector :math:`\theta_0`, and identical inference/optimization seeds must produce identical final state, validation outcomes, terminal :math:`\theta_n`, and control actions :math:`u_n`.
 
+
+
+Inference Window Derivation Constraints
+---------------------------------------
+
+Rolling window :math:`W_t` is a derived read-only view built from persisted event log and/or validated snapshots.
+
+Window construction must:
+
+- Preserve persisted event ordering
+- Avoid any mutation of domain state
+- Remain observational (no side effects on :math:`H` or :math:`V`)
+
+Window computation is analytical and must not change replay semantics.

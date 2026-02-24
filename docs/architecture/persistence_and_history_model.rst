@@ -61,16 +61,24 @@ The event log must store:
 
 Replay is defined as:
 
-1. Initialize X_0
-2. Reinject event sequence
-3. Recompute X_t
+1. Initialize :math:`X_0` (or a validated snapshot baseline)
+2. Reinject event sequence through ingestion :math:`\rightarrow H \rightarrow V`
+3. Recompute :math:`X_t`
+4. Execute inference deterministically
+5. Execute optimization deterministically and reproduce emitted control events
 
+If replay excludes inference/optimization, it must be explicitly labeled as limited replay mode.
 If replay fails, determinism is violated.
 
 ---
 
 4. Snapshot Persistence
 -----------------------
+
+Snapshot generation is strictly downstream of validation.
+A snapshot may be materialized only after :math:`V(X_{t+1}) = \text{valid}`.
+Invalid intermediate candidate states must never be serialized into snapshots.
+
 
 Snapshots are performance optimizations.
 
@@ -88,7 +96,7 @@ Snapshots must be:
 - Timestamped
 - Consistent across subsystems
 
-Snapshots must not replace event log as source of truth.
+Snapshots must not replace event log as source of truth. They are derived artifacts and must reflect only validated states.
 
 ---
 
@@ -110,13 +118,13 @@ Window supports:
 - Trend analysis
 - SLA evaluation
 
-Window data may be stored as:
+Window data may be stored as (read-only derived artifacts):
 
 - Aggregated metrics
 - Reduced state vectors
 - Statistical summaries
 
-Raw events remain in event log.
+Raw events remain in event log. Window construction must not reorder events and must not mutate domain state.
 
 ---
 
@@ -374,5 +382,5 @@ This document conforms to the canonical model:
 
    System = (X, E, H, V, \mathcal{I}, \mathcal{O})
 
-It preserves the determinism rule: identical initial state and identical ordered event sequence must produce identical final state and validation outcomes.
+It preserves the determinism rule: identical initial state, identical ordered event sequence, identical initial parameter vector :math:`\theta_0`, and identical inference/optimization seeds must produce identical final state, validation outcomes, terminal :math:`\theta_n`, and control actions :math:`u_n`.
 
