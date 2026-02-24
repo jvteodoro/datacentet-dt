@@ -9,6 +9,8 @@ from .base_event import DomainEvent
 class WorkloadSubmittedEvent(DomainEvent):
     workload_id: str
     source: str
+    destination: str
+    payload_size: float
 
     def _event_marker(self) -> None:
         return None
