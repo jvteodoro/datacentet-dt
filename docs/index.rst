@@ -10,6 +10,8 @@ Portal principal da documentação científica, de arquitetura e de engenharia.
    theory/system_model
    theory/event_dynamics
    theory/validation_operator
+   theory/flow_level_contracts.rst
+   theory/flow_level_topology_model.rst
 
 .. toctree::
    :maxdepth: 2
@@ -17,6 +19,8 @@ Portal principal da documentação científica, de arquitetura e de engenharia.
 
    architecture/hexagonal_design
    architecture/contracts
+   architecture/inference_architecture_model.rst
+   architecture/ingestion_model.rst
 
 .. toctree::
    :maxdepth: 2
