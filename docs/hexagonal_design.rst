@@ -1,3 +1,5 @@
+:orphan:
+
 Hexagonal Design (Ports & Adapters)
 ====================================
 
