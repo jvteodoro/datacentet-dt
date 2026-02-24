@@ -33,9 +33,10 @@ def test_start_flow_increases_backlog_only_on_path() -> None:
     )
 
     after = twin.state.link_backlog
-    idx_ab = twin.state.link_index[(twin.state.node_index["A"], twin.state.node_index["B"])]
-    idx_bc = twin.state.link_index[(twin.state.node_index["B"], twin.state.node_index["C"])]
-    idx_ac = twin.state.link_index[(twin.state.node_index["A"], twin.state.node_index["C"])]
+    top = twin.state.topology
+    idx_ab = top.link_index[(top.node_index["A"], top.node_index["B"])]
+    idx_bc = top.link_index[(top.node_index["B"], top.node_index["C"])]
+    idx_ac = top.link_index[(top.node_index["A"], top.node_index["C"])]
 
     assert after[idx_ab] == before[idx_ab] + 3.0
     assert after[idx_bc] == before[idx_bc] + 3.0

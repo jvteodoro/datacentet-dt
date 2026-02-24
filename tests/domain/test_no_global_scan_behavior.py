@@ -34,10 +34,10 @@ def test_per_event_updates_only_path_links() -> None:
         )
     )
 
-    modified = set(twin.state.modified_link_indices)
+    after = twin.state.link_backlog
+    modified = {link_id for link_id, (old, new) in enumerate(zip(before, after)) if new != old}
     assert len(modified) == 2
 
-    after = twin.state.link_backlog
     for link_id, (old, new) in enumerate(zip(before, after)):
         if link_id in modified:
             assert new == old + 1.0

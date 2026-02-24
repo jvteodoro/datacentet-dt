@@ -34,9 +34,9 @@ def test_add_nodes_and_links_replay_equality() -> None:
     b = DataCenterTwin()
     b.replay(events)
 
-    assert a.state.node_index == b.state.node_index
-    assert a.state.reverse_node_index == b.state.reverse_node_index
-    assert a.state.link_capacity == b.state.link_capacity
+    assert a.state.topology.node_index == b.state.topology.node_index
+    assert a.state.topology.reverse_node_index == b.state.topology.reverse_node_index
+    assert a.state.topology.link_capacity == b.state.topology.link_capacity
     assert a.state.link_backlog == b.state.link_backlog
     assert a.state.active_flows == b.state.active_flows
     assert a.get_snapshot() == b.get_snapshot()

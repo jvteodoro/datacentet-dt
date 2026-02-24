@@ -20,8 +20,8 @@ def build_snapshot(state: TwinState) -> TwinSnapshot:
     return TwinSnapshot(
         version_counter=state.version_counter,
         event_counter=state.event_counter,
-        total_nodes=len(state.reverse_node_index),
-        total_links=len(state.link_capacity),
+        total_nodes=len(state.topology.reverse_node_index),
+        total_links=len(state.topology.link_capacity),
         active_flows_count=len(state.active_flows),
         link_backlog=tuple(state.link_backlog),
     )

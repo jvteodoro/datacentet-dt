@@ -419,3 +419,15 @@ Validation and persistence ordering is mandatory per event:
     normalize -> H -> V -> persist -> snapshot update -> inference window update
 
 If :math:`V(X_{t+1})` is not valid, the event must not be persisted and must not update snapshot or inference windows.
+
+Phase 2.2 Note — Hyperscale Structural Refactor
+------------------------------------------------
+
+Phase 2.2 introduces in-place dynamic updates with transition-local rollback in the
+single-threaded deterministic domain core.
+
+Design target and verification objective for flow events:
+
+- strict :math:`O(path\_length)` transition work for ``FlowStarted`` and ``FlowEnded``
+- no full dynamic-container copy in flow event paths
+- validation restricted to modified entities
