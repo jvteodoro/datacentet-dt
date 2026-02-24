@@ -75,6 +75,12 @@ Navigation
 
 .. toctree::
    :maxdepth: 2
+   :caption: Agent Reporting
+
+   agent_report/index
+
+.. toctree::
+   :maxdepth: 2
    :caption: Performance
 
    performance/index
