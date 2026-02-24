@@ -26,11 +26,12 @@ def test_L2_domain_events_have_unique_identity_when_event_id_is_not_provided():
     events = [
         TaskStartedEvent(task_id="task-1", node_id="node-A"),
         TaskCompletedEvent(task_id="task-1", node_id="node-A"),
-        WorkloadSubmittedEvent(workload_id="wl-1", source="src-1", destination="dst-1", payload_size=1.0),
+        WorkloadSubmittedEvent(workload_id="wl-1", source="src-1", destination="dst-1", payload_size=1.0, required_cycles=1.0),
         WorkloadDeliveredEvent(
             workload_id="wl-1",
             source="src-1",
             destination="dst-1",
+            required_cycles=1.0,
         ),
     ]
 
@@ -41,7 +42,7 @@ def test_L2_domain_events_have_unique_identity_when_event_id_is_not_provided():
 
 def test_L3_domain_events_can_be_sorted_in_ascending_temporal_order():
     unordered_events = [
-        WorkloadSubmittedEvent(workload_id="wl-1", source="src", destination="dst", payload_size=1.0, timestamp=3.0),
+        WorkloadSubmittedEvent(workload_id="wl-1", source="src", destination="dst", payload_size=1.0, required_cycles=1.0, timestamp=3.0),
         TaskStartedEvent(task_id="task-1", node_id="node-A", timestamp=1.0),
         TaskCompletedEvent(task_id="task-1", node_id="node-A", timestamp=2.0),
     ]
@@ -85,6 +86,7 @@ def test_L5_domain_event_repr_includes_class_name_event_id_and_timestamp():
         source="src-1",
         destination="dst-1",
         payload_size=1.0,
+        required_cycles=1.0,
     )
 
     representation = repr(event)
@@ -110,13 +112,40 @@ def test_domain_event_rejects_non_finite_timestamp():
     [
         TaskStartedEvent(task_id="task-1", node_id="node-A"),
         TaskCompletedEvent(task_id="task-1", node_id="node-A"),
-        WorkloadSubmittedEvent(workload_id="wl-1", source="src-1", destination="dst-1", payload_size=1.0),
+        WorkloadSubmittedEvent(workload_id="wl-1", source="src-1", destination="dst-1", payload_size=1.0, required_cycles=1.0),
         WorkloadDeliveredEvent(
             workload_id="wl-1",
             source="src-1",
             destination="dst-1",
+            required_cycles=1.0,
         ),
     ],
 )
 def test_domain_event_concrete_classes_are_instances_of_domain_event(event):
     assert isinstance(event, DomainEvent)
+
+
+@pytest.mark.parametrize(
+    "invalid_payload",
+    [-1.0, float("inf"), float("-inf")],
+)
+def test_workload_submitted_event_rejects_invalid_payload_size(invalid_payload):
+    with pytest.raises((TypeError, ValueError)):
+        WorkloadSubmittedEvent(
+            workload_id="wl-1",
+            source="src-1",
+            destination="dst-1",
+            payload_size=invalid_payload,
+            required_cycles=1.0,
+        )
+
+
+def test_workload_submitted_event_rejects_non_numeric_required_cycles():
+    with pytest.raises(TypeError):
+        WorkloadSubmittedEvent(
+            workload_id="wl-1",
+            source="src-1",
+            destination="dst-1",
+            payload_size=1.0,
+            required_cycles="not-a-number",
+        )

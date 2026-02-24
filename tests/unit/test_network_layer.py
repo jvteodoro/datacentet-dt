@@ -22,6 +22,7 @@ def test_network_layer_delivers_workload_after_deterministic_service_tick() -> N
             source="ingress",
             destination="egress",
             payload_size=4.0,
+            required_cycles=10.0,
             timestamp=1.0,
         )
     )
@@ -55,6 +56,7 @@ def test_network_layer_preserves_flow_conservation_with_drops() -> None:
             source="src",
             destination="dst",
             payload_size=9.0,
+            required_cycles=7.0,
             timestamp=2.0,
         )
     )

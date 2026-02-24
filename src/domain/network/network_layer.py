@@ -35,6 +35,7 @@ class NetworkLayer:
                     workload_id=event.workload_id,
                     source=event.source,
                     destination=event.destination,
+                    required_cycles=event.required_cycles,
                     timestamp=delivered_at,
                 )
             )
