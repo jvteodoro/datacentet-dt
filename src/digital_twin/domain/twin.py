@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable
-from typing import Union
 from time import perf_counter_ns
+from typing import Union
 
 from .event import DomainEvent, normalize_event
 from .metrics import MetricsCollector
-from .snapshot import TwinSnapshot, build_snapshot
+from .snapshot import TwinSnapshot, build_snapshot, state_from_snapshot
 from .state import TwinState
 from .transition import TransitionCandidate, apply_transition
 from .validation import validate_state
@@ -21,22 +21,29 @@ class DataCenterTwin:
         transition_fn: Callable[[TwinState, DomainEvent], Union[TwinState, TransitionCandidate]] = apply_transition,
         validator_fn: Callable[[Union[TwinState, TransitionCandidate]], None] = validate_state,
         normalizer_fn: Callable[[DomainEvent], DomainEvent] = normalize_event,
+        event_store: object | None = None,
+        snapshot_store: object | None = None,
+        snapshot_interval: int = 1000,
     ) -> None:
+        if snapshot_interval <= 0:
+            raise ValueError("snapshot_interval must be > 0")
+
         self._state = _build_initial_state()
         self._snapshot = build_snapshot(self._state)
-        self._event_log: list[DomainEvent] = []
         self._metrics = MetricsCollector()
         self._transition_fn = transition_fn
         self._validator_fn = validator_fn
         self._normalizer_fn = normalizer_fn
+        self._event_store = event_store if event_store is not None else _LocalEventStore()
+        self._snapshot_store = snapshot_store if snapshot_store is not None else _LocalSnapshotStore()
+        self._snapshot_interval = snapshot_interval
 
     @property
     def event_log(self) -> tuple[DomainEvent, ...]:
-        return tuple(self._event_log)
+        return tuple(self._event_store.load_all())
 
     @property
     def state(self) -> TwinState:
-        # Logical immutability boundary: expose copied dynamic containers only.
         return TwinState(
             version_counter=self._state.version_counter,
             event_counter=self._state.event_counter,
@@ -58,14 +65,13 @@ class DataCenterTwin:
 
     def ingest_event(self, event: DomainEvent) -> None:
         started_ns = perf_counter_ns()
-
-        # 1) normalize(event)
         normalized_event = self._normalizer_fn(event)
+        self._apply_normalized_event(normalized_event, persist_event=True)
+        self._metrics.record_ingestion_latency(perf_counter_ns() - started_ns)
 
-        # 2) X_candidate = H(X_current, event)
-        candidate = self._transition_fn(self._state, normalized_event)
+    def _apply_normalized_event(self, event: DomainEvent, *, persist_event: bool) -> None:
+        candidate = self._transition_fn(self._state, event)
 
-        # 3) V(X_candidate) -> valid or error
         try:
             self._validator_fn(candidate)
         except Exception:
@@ -73,11 +79,12 @@ class DataCenterTwin:
                 candidate.rollback()
             raise
 
-        # 4) If valid: commit state -> append event log -> update snapshot -> update metrics
         self._state = candidate.state if isinstance(candidate, TransitionCandidate) else candidate
-        self._event_log.append(normalized_event)
+        if persist_event:
+            self._event_store.append(event)
         self._snapshot = build_snapshot(self._state)
-        self._metrics.record_ingestion_latency(perf_counter_ns() - started_ns)
+        if self._state.event_counter % self._snapshot_interval == 0:
+            self._snapshot_store.save(self._snapshot)
 
     def get_snapshot(self) -> TwinSnapshot:
         return self._snapshot
@@ -85,12 +92,52 @@ class DataCenterTwin:
     def replay(self, event_sequence: Iterable[DomainEvent]) -> None:
         self._state = _build_initial_state()
         self._snapshot = build_snapshot(self._state)
-        self._event_log = []
         self._metrics = MetricsCollector()
 
         for event in event_sequence:
             self.ingest_event(event)
 
+    def recover(self) -> None:
+        snapshot = self._snapshot_store.load_latest()
+        self._metrics = MetricsCollector()
+
+        if snapshot is not None:
+            self._state = state_from_snapshot(snapshot)
+            self._snapshot = snapshot
+            events = self._event_store.load_from(snapshot.version_counter)
+        else:
+            self._state = _build_initial_state()
+            self._snapshot = build_snapshot(self._state)
+            events = self._event_store.load_all()
+
+        for event in events:
+            self._apply_normalized_event(event, persist_event=False)
+
 
 def _build_initial_state() -> TwinState:
     return TwinState()
+
+
+class _LocalEventStore:
+    def __init__(self) -> None:
+        self._events: list[DomainEvent] = []
+
+    def append(self, event: DomainEvent) -> None:
+        self._events.append(event)
+
+    def load_all(self) -> tuple[DomainEvent, ...]:
+        return tuple(self._events)
+
+    def load_from(self, version: int) -> tuple[DomainEvent, ...]:
+        return tuple(self._events[version:])
+
+
+class _LocalSnapshotStore:
+    def __init__(self) -> None:
+        self._snapshot: TwinSnapshot | None = None
+
+    def save(self, snapshot: TwinSnapshot) -> None:
+        self._snapshot = snapshot
+
+    def load_latest(self) -> TwinSnapshot | None:
+        return self._snapshot
