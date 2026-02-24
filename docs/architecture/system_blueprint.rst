@@ -486,3 +486,129 @@ Network-event guarantees remain unchanged:
 - no global scans over links, flows, servers, or workloads in event paths
 
 This keeps the hyperscale contract aligned with sparse, event-driven evolution.
+
+18. Temporal Evolution Engine — Discrete Tick Model
+---------------------------------------------------
+
+Phase 4 extends the deterministic event space with a discrete temporal event:
+
+::
+
+   Tick(delta_time: float)
+
+Tick as event
+~~~~~~~~~~~~~
+
+Time progression is modeled as an explicit event, not by wall-clock reads.
+This preserves deterministic replay because temporal evolution is fully encoded
+in the ordered event log.
+
+Temporal network evolution
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Tick drains only active links tracked in ``active_link_indices``.
+For each active link ``i``:
+
+.. math::
+
+   drained_i = \min(capacity_i \cdot \Delta t, backlog_i)
+
+.. math::
+
+   backlog_i \leftarrow backlog_i - drained_i
+
+If backlog reaches zero, ``i`` is removed from ``active_link_indices``.
+No scan over all links is permitted.
+
+Temporal compute evolution
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Tick progresses only currently active workloads.
+For workload ``w``:
+
+.. math::
+
+   remaining\_size_w \leftarrow remaining\_size_w - cpu\_usage\_rate_w \cdot \Delta t
+
+When ``remaining_size`` reaches zero, workload ``w`` is removed, server usage is
+released, and the server is removed from ``active_server_indices`` if no workloads
+remain on that server.
+
+Determinism and rollback implications
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Tick follows the same transition discipline as all domain events:
+
+1. Record modified indices and original values.
+2. Apply local in-place mutation.
+3. Validate only modified entities.
+4. Roll back on validation failure.
+5. Commit version/event counters on success.
+
+No threads, no hidden clocks, and no unordered side effects are introduced.
+
+Complexity guarantees
+~~~~~~~~~~~~~~~~~~~~~
+
+Tick complexity is strictly:
+
+.. math::
+
+   O(|active\_links| + |active\_workloads|)
+
+Flow events remain :math:`O(path\_length)` and workload start/end remain
+:math:`O(1)`.
+
+Active-entity tracking prevents full topology or server scans while preserving
+immutable snapshot export semantics.
+
+19. Deterministic Iteration Canonicalization (Phase 4.1)
+---------------------------------------------------------
+
+Phase 4.1 hardens Tick execution by canonicalizing iteration order over active
+collections.
+
+Why canonicalization is required
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``active_link_indices`` is a set and ``active_workloads`` is a dict-backed map.
+Direct iteration over these structures is not guaranteed by the model contract
+as a canonical scientific ordering primitive.
+
+To remove implicit order dependence, Tick now applies explicit sorted traversal
+over active subsets only.
+
+Canonical Tick traversal rules
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Link drain loop iterates ``sorted(active_link_indices)``.
+- Workload progress loop iterates ``sorted(active_workloads)`` and dereferences
+  each workload id from the workload map.
+
+This preserves sparse locality while making iteration structure explicit and
+stable for replay and audit.
+
+Complexity trade-off
+~~~~~~~~~~~~~~~~~~~~
+
+Tick complexity shifts from:
+
+.. math::
+
+   O(|active\_links| + |active\_workloads|)
+
+to:
+
+.. math::
+
+   O(|active\_links| \log |active\_links| + |active\_workloads| \log |active\_workloads|)
+
+No global topology scan is introduced; sorting is restricted to active
+collections only.
+
+Scientific reproducibility rationale
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Explicit canonical ordering upgrades determinism from functional behavior to
+structural execution reproducibility for temporal loops, reinforcing
+cross-environment replay integrity.
