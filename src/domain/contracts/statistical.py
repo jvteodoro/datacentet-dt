@@ -231,3 +231,11 @@ class StatisticalContract:
             raise StatisticalViolation(
                 "S5: zero uncertainty requires all sources to be zero-uncertainty"
             )
+
+        observation_uncertainties = snapshot.get("observation_uncertainties") or []
+        state_uncertainties = snapshot.get("state_uncertainties") or []
+        if observation_uncertainties and state_uncertainties:
+            if min(observation_uncertainties) < min(state_uncertainties):
+                raise StatisticalViolation(
+                    "S5: observation cannot be more certain than inferred state"
+                )

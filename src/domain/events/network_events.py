@@ -13,12 +13,15 @@ class WorkloadSubmittedEvent(DomainEvent):
     source: str
     destination: str
     payload_size: float
-    required_cycles: float
+    required_cycles: float | None = None
 
     def __post_init__(self) -> None:
         DomainEvent.__post_init__(self)
-        object.__setattr__(self, "payload_size", _validate_non_negative_scalar(self.payload_size, "payload_size"))
-        object.__setattr__(self, "required_cycles", _validate_non_negative_scalar(self.required_cycles, "required_cycles"))
+        payload_size = _validate_non_negative_scalar(self.payload_size, "payload_size")
+        required_cycles = 1.0 if self.required_cycles is None else self.required_cycles
+
+        object.__setattr__(self, "payload_size", payload_size)
+        object.__setattr__(self, "required_cycles", _validate_non_negative_scalar(required_cycles, "required_cycles"))
 
     def _event_marker(self) -> None:
         return None

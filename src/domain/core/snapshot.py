@@ -310,7 +310,7 @@ class Snapshot:
         return {
             "timestamp": self._timestamp,
             "previous_timestamp": None,
-            "input_timestamps": [_thaw_value(o)['timestamp'] for o in self._observables],
+            "input_timestamps": [],
             "state_timestamp": _thaw_value(self._state_vector)['timestamp'] if self._state_vector else None,
             "observation_timestamp": _thaw_value(self._observables[0])['timestamp'] if self._observables else None,
         }
@@ -327,19 +327,21 @@ class Snapshot:
             else None
         )
 
-        child_variances = [
+        observation_uncertainties = [
             _thaw_value(o)['uncertainty']
             for o in self._observables
             if _thaw_value(o)['uncertainty'] is not None
         ]
 
+        state_uncertainties = []
         if self._state_vector is not None:
-            state_vars = [
+            state_uncertainties = [
                 v['uncertainty']
                 for v in _thaw_value(self._state_vector)['variables']
                 if v.get('uncertainty') is not None
             ]
-            child_variances.extend(state_vars)
+
+        child_variances = observation_uncertainties + state_uncertainties
 
         child_variances = child_variances or None
 
@@ -359,6 +361,8 @@ class Snapshot:
             "confidence": min(confidences) if confidences else None,
             "child_variances": child_variances,
             "parent_variance": parent_variance,
+            "observation_uncertainties": observation_uncertainties or None,
+            "state_uncertainties": state_uncertainties or None,
         }
 
     def to_epistemic_view(self) -> List[Dict[str, Any]]:
