@@ -35,6 +35,19 @@ class TwinSnapshot:
     active_link_indices: tuple[int, ...]
     active_server_indices: tuple[int, ...]
 
+    @property
+    def active_link_count(self) -> int:
+        return self.total_active_links
+
+    @property
+    def active_server_count(self) -> int:
+        return self.total_active_servers
+
+    @property
+    def total_cpu_usage(self) -> float:
+        return self.aggregate_cpu_usage
+
+
 
 def build_snapshot(state: TwinState) -> TwinSnapshot:
     return TwinSnapshot(
