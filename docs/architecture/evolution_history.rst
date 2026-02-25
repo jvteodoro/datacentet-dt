@@ -125,3 +125,13 @@ Micro-Phase 6.1 — Epistemological Determinism Hardening
 - Canonicalized epistemic timestamp source to ``snapshot.version_counter``.
 - Hardened hyperscale policy: moving-average extraction uses aggregated active metrics only.
 - Added ``ParameterStore`` persistence port for immutable parameter vectors.
+
+
+Phase 7 — Optimization Architecture
+-----------------------------------
+
+- Added strategy-based optimization subsystem decoupled from domain mutation path.
+- Introduced deterministic strategy registry and orchestration engine modes: ``LIVE``, ``REPLAY``, ``DISABLED``.
+- Added immutable ``ActionProposal`` model and fail-fast admissibility/safety contracts.
+- Added baseline O(1) optimization policy based on aggregated backlog metric.
+- Enforced optimization re-entry through ``ControlActionProposed`` domain events to preserve replay determinism.
