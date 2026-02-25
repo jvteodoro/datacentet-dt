@@ -7,6 +7,9 @@ from typing import Any, Mapping
 from uuid import UUID, NAMESPACE_URL, uuid5
 
 
+EVENT_CONTROL_ACTION_PROPOSED = "ControlActionProposed"
+
+
 @dataclass(frozen=True, slots=True)
 class DomainEvent:
     """Canonical immutable domain event."""
