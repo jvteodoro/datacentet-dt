@@ -56,6 +56,7 @@ class InferenceEngine:
 
         if not self._initialized:
             self._initialize_strategies(snapshot)
+            return MappingProxyType(dict(self._latest_parameters))
 
         for strategy in self._registry.active_strategies():
             previous = self._latest_parameters.get(strategy.name())

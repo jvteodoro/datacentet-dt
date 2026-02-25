@@ -127,6 +127,15 @@ Micro-Phase 6.1 — Epistemological Determinism Hardening
 - Added ``ParameterStore`` persistence port for immutable parameter vectors.
 
 
+Phase 6.2 — EKF Strategy: covariance-carrying epistemic estimator introduced
+-------------------------------------------------------------------------------
+
+- Added ``EKFStrategy`` under inference strategies with deterministic 2D EKF update.
+- Introduced nonlinear observation model in log-space with aggregate-only snapshot inputs.
+- Added Joseph-form covariance updates, symmetrization, and deterministic inversion jitter for PSD stability.
+- Preserved strict separation from physical domain state and replay-equivalent LIVE/REPLAY execution.
+
+
 Phase 7 — Optimization Architecture
 -----------------------------------
 

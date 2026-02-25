@@ -54,6 +54,97 @@ Implementation Strategy
 
   with ``O(active_metrics)`` time and ``O(1)`` memory.
 
+
+EKF Strategy (Phase 6.2)
+------------------------
+
+Problem Context
+^^^^^^^^^^^^^^^
+
+Moving averages provide stable first-order summaries but do not carry uncertainty
+state. For epistemic consumers, uncertainty evolution is required to distinguish
+high-confidence from low-confidence parameter trajectories without coupling to
+domain state mutation.
+
+Conceptual Tension
+^^^^^^^^^^^^^^^^^^
+
+- Estimation must remain online and deterministic for replay equivalence.
+- Covariance must remain positive semidefinite under finite-precision arithmetic.
+- Hyperscale constraints forbid full-array scans during inference updates.
+
+Abstraction Introduced
+^^^^^^^^^^^^^^^^^^^^^^
+
+``EKFStrategy`` introduces a covariance-carrying nonlinear estimator over a
+2-dimensional latent log-space state:
+
+.. math::
+
+   x_t = [\log(cpu\_per\_workload_t), \log(backlog\_per\_active\_link_t)]^T
+
+Formal Definition
+^^^^^^^^^^^^^^^^^
+
+Transition model (random walk):
+
+.. math::
+
+   f(x_t) = x_t, \quad F = I
+
+Observation vector from hyperscale-safe snapshot aggregates:
+
+.. math::
+
+   z_t = [z_{1,t}, z_{2,t}]^T
+
+with:
+
+.. math::
+
+   z_{1,t} = \frac{\text{total\_cpu\_usage}}{\max(1, \text{active\_workload\_count})},
+   \quad
+   z_{2,t} = \frac{\text{total\_backlog}}{\max(1, \text{active\_link\_count})}
+
+Nonlinear observation model:
+
+.. math::
+
+   h(x_t) = [\exp(x_{1,t}), \exp(x_{2,t})]^T
+
+Jacobian:
+
+.. math::
+
+   H_t = \begin{bmatrix}\exp(x_{1,t}) & 0 \\ 0 & \exp(x_{2,t})\end{bmatrix}
+
+Noise models use deterministic diagonal constants: process noise ``Q`` and
+observation noise ``R``.
+
+Implementation Strategy
+^^^^^^^^^^^^^^^^^^^^^^^
+
+- Manual 2x2 algebra (no heavy dependencies) keeps updates deterministic and O(1).
+- Inputs are aggregate-only: ``total_cpu_usage``, ``active_workload_count``,
+  ``total_backlog``, ``active_link_count``.
+- Covariance is maintained and emitted in **log-space**.
+- Near-singular innovation inversion applies fixed deterministic jitter ``epsilon*I``.
+- Covariance update uses Joseph form:
+
+  .. math::
+
+     P_t = (I-K_tH_t)P^-_t(I-K_tH_t)^T + K_tRK_t^T
+
+  followed by explicit symmetrization ``P = 0.5(P + P^T)``.
+
+Consequences
+^^^^^^^^^^^^
+
+- Epistemic outputs now include uncertainty trajectories with PSD-safe updates.
+- Determinism remains replay-stable for identical snapshot streams in LIVE/REPLAY.
+- Hyperscale policy remains preserved because only pre-aggregated fields are read.
+- The interface is now ready for future UKF/particle estimators with the same engine contracts.
+
 Consequences
 ------------
 

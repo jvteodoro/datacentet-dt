@@ -65,5 +65,36 @@ def test_engine_executes_registered_strategies_in_sorted_order() -> None:
     )
 
     engine.on_snapshot(snapshot)
+    snapshot_2 = TwinSnapshot(
+        version_counter=2,
+        event_counter=2,
+        total_nodes=0,
+        total_links=0,
+        total_servers=0,
+        active_flows_count=0,
+        total_active_workloads=0,
+        total_backlog=0.0,
+        total_active_links=0,
+        total_active_servers=0,
+        aggregate_cpu_usage=0.0,
+        aggregate_memory_usage=0.0,
+        link_backlog=(),
+        cpu_usage=(),
+        memory_usage=(),
+        topology_node_ids=(),
+        topology_adjacency=(),
+        topology_link_capacity=(),
+        topology_links=(),
+        compute_server_ids=(),
+        compute_cpu_capacity=(),
+        compute_memory_capacity=(),
+        active_flows=(),
+        server_workload_count=(),
+        active_workloads=(),
+        active_link_indices=(),
+        active_server_indices=(),
+    )
+
+    engine.on_snapshot(snapshot_2)
 
     assert recorder == ["alpha", "zeta"]

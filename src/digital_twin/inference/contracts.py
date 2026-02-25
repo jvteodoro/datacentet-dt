@@ -28,8 +28,8 @@ def validate_parameter_vector(parameter_vector: ParameterVector, previous_timest
         if not _is_positive_semidefinite(covariance):
             raise ValueError("covariance must be positive semidefinite")
 
-    if previous_timestamp is not None and parameter_vector.timestamp < previous_timestamp:
-        raise ValueError("parameter timestamp must be monotonic")
+    if previous_timestamp is not None and parameter_vector.timestamp <= previous_timestamp:
+        raise ValueError("parameter timestamp must be strictly increasing")
 
 
 def _is_positive_semidefinite(matrix: tuple[tuple[float, ...], ...], tolerance: float = 1e-12) -> bool:

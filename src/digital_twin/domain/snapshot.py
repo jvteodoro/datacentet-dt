@@ -44,6 +44,10 @@ class TwinSnapshot:
         return self.total_active_servers
 
     @property
+    def active_workload_count(self) -> int:
+        return self.total_active_workloads
+
+    @property
     def total_cpu_usage(self) -> float:
         return self.aggregate_cpu_usage
 
