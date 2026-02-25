@@ -8,6 +8,7 @@ Architecture
    contracts
    evolution_history
    hexagonal_design
+   inference_architecture
    inference_architecture_model
    ingestion_model
    optimization_architecture_model

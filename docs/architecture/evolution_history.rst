@@ -107,3 +107,21 @@ Phase 5 — Event Store & Persistence Architecture
   immutability boundaries.
 - Established integration path for future Kafka-backed event transport and
   durable persistence adapters.
+
+
+Phase 6 — Introduction of Epistemological Layer
+------------------------------------------------
+
+- Added an inference subsystem decoupled from physical transition logic.
+- Introduced deterministic strategy orchestration with immutable parameter outputs.
+- Added online moving-average estimation over active-entity metrics only.
+- Enforced epistemic contracts (finite values, covariance checks, timestamp monotonicity).
+
+
+Micro-Phase 6.1 — Epistemological Determinism Hardening
+--------------------------------------------------------
+
+- Formalized inference runtime modes: ``LIVE``, ``REPLAY``, and ``DISABLED``.
+- Canonicalized epistemic timestamp source to ``snapshot.version_counter``.
+- Hardened hyperscale policy: moving-average extraction uses aggregated active metrics only.
+- Added ``ParameterStore`` persistence port for immutable parameter vectors.
