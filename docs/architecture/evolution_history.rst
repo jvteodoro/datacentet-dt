@@ -225,3 +225,25 @@ Phase 9C.1 — Hyperscale Hardening: TTL/LRU eviction, rebalance safety, streami
   partitions and avoid committing unprocessed offsets.
 - Documented hot-stream mitigation via substream namespace split strategy for
   horizontal scaling without global ordering assumptions.
+
+Phase 9D — Unified Observability + Metrics API
+-----------------------------------------------
+
+- Added unified observability model for counters, gauges, and histogram-style
+  aggregates with deterministic JSON serialization ordering.
+- Introduced provider-backed registry for domain ingestion metrics, streaming
+  operational metrics, and persistence adapter metrics.
+- Added lightweight read-only Metrics API endpoints for health, snapshot export,
+  schema discovery, and stream-level operational aggregates.
+- Formalized determinism-safe observability semantics: metrics remain
+  side-channel only and never mutate domain transition/replay behavior.
+
+Phase 9D.1 — Metrics cache and staleness contract
+--------------------------------------------------
+
+- Added TTL-based ``MetricsSnapshotCache`` with monotonic clock abstraction for
+  deterministic, testable refresh policy.
+- Updated metrics API serving path to use cache-backed snapshot retrieval,
+  reducing repeated per-request collection overhead under burst traffic.
+- Formalized staleness semantics and failure fallback: return last cached
+  snapshot on refresh failure and increment observability refresh-error counter.
