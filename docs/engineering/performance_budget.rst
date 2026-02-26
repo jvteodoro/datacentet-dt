@@ -512,3 +512,42 @@ Initial envelope for cache-served metrics API path:
 
 Cache refresh must remain bounded to metrics aggregation scope and must not
 introduce domain scans or transition-path blocking.
+
+20. Phase 9E Local Load Testing Gates (Locust)
+----------------------------------------------
+
+The following placeholders define acceptance gates for the local Metrics API
+load campaign. Final values remain **TBD** until baseline measurements are
+recorded using the Phase 9E Locust suite.
+
+Scenario-to-gate mapping:
+
+- ``steady_state_cache_hit``
+
+  - ``/metrics`` p95 latency: **TBD** ms
+  - ``/metrics`` p99 latency: **TBD** ms
+  - sustained RPS minimum: **TBD** req/s
+
+- ``burst_dashboard_refresh``
+
+  - ``/metrics`` p95 latency under burst: **TBD** ms
+  - ``/metrics/top`` p95 latency under burst: **TBD** ms
+  - ``/metrics/top`` p99 latency under burst: **TBD** ms
+
+- ``refresh_pressure``
+
+  - maximum refresh spike latency threshold: **TBD** ms
+  - acceptable refresh spike frequency threshold: **TBD**
+
+- ``mixed_observability``
+
+  - aggregate error-rate SLO: **TBD** %
+  - mixed-endpoint p99 latency threshold: **TBD** ms
+
+Required report fields for every run:
+
+- p50/p95/p99 latency by endpoint (minimum ``/metrics`` and ``/metrics/top``)
+- throughput (RPS)
+- HTTP error rate
+- payload size estimates (bytes) for key endpoints
+- cache-hit vs refresh-path latency comparison summary

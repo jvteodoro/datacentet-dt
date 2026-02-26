@@ -260,3 +260,16 @@ Phase 9D.2 — Metrics coverage expansion + cardinality policy
   ``/metrics/histograms`` with hard limit enforcement.
 - Formalized observability cardinality/cost policy and deterministic ordering
   requirements for hyperscale-safe request behavior.
+
+Phase 9E — Local Locust Load-Testing Suite for Metrics API
+-----------------------------------------------------------
+
+- Added a dedicated ``load_testing/locust`` suite with deterministic profile
+  definitions for cache-hit, burst, refresh-pressure, and mixed-observability
+  scenarios.
+- Introduced environment-driven endpoint weights, runtime parameters, and
+  header injection support for future auth simulation.
+- Formalized safe refresh-pressure methodology using TTL-aligned waits rather
+  than mutation endpoints.
+- Added local operator documentation and acceptance-gate placeholders linking
+  Locust scenarios to performance budget reporting fields.

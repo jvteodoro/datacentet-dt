@@ -13,6 +13,7 @@ Engineering
    kafka_protocol
    load_testing_model
    local_load_testing_protocol
+   local_load_testing_locust
    observability_metrics_api
    observability_cardinality_policy
    performance_budget
