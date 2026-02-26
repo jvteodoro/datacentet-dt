@@ -174,3 +174,54 @@ Phase 8.1 — Persistence Hardening
   as side channels aligned with metrics architecture.
 - Added connection-factory/pooling support with context-managed transaction boundaries
   for safer concurrent persistence operations.
+
+
+Phase 9A — Kafka Streaming Ingestion Adapter + unified stack compose
+---------------------------------------------------------------------
+
+- Added infrastructure streaming adapter package under
+  ``digital_twin.infrastructure.streaming`` with Kafka message schema validation,
+  normalization, and single-threaded consumer loop.
+- Added Kafka consumer semantics aligned to deterministic ingest protocol:
+
+  - normalize -> H -> V -> commit -> persist -> snapshot remains enforced by
+    domain ingest path;
+  - duplicate ingest IDs return ``ALREADY_EXISTS`` and skip state mutation;
+  - version conflicts raise deterministic divergence errors;
+  - invalid payloads route to DLQ and commit offsets.
+
+- Added project-level stack compose file ``docker-compose.stack.yml`` including
+  PostgreSQL + ZooKeeper + Kafka + Kafka UI (+ pgAdmin optional).
+- Added streaming test suite (unit + kafka-marked integration-contract tests)
+  for schema validation, mapping, idempotency, ordering, and DLQ handling.
+- Added engineering protocol doc for local Kafka stack operations and tests.
+
+
+Phase 9C — Hyperscale Multi-Stream Partition Strategy
+------------------------------------------------------
+
+- Added ``MultiStreamCoordinator`` to route by ``stream_id`` into isolated
+  ``DataCenterTwin`` instances (one twin per stream).
+- Extended Kafka consumer adapter for multi-stream outcomes
+  (``APPLIED``, ``DUPLICATE``, ``DLQ``, ``VERSION_CONFLICT``) with offset
+  commit policy aligned to DB persistence and conflict-stop semantics.
+- Added telemetry producer partition-key policy (Kafka key = ``stream_id``).
+- Expanded streaming tests for stream isolation, per-stream ordering,
+  per-stream duplicate semantics, and partition-key routing contract.
+- Documented hyperscale partitioning semantics and non-goal of global ordering
+  across streams.
+
+
+Phase 9C.1 — Hyperscale Hardening: TTL/LRU eviction, rebalance safety, streaming metrics
+------------------------------------------------------------------------------------------
+
+- Hardened ``MultiStreamCoordinator`` with bounded-memory operations using
+  monotonic-time TTL and LRU capacity eviction.
+- Added stream lifecycle operations and outcomes for deterministic, operational
+  twin eviction without altering event-log source-of-truth semantics.
+- Added streaming metrics side-channel collector for active streams, eviction
+  counters, ingestion outcomes, and coordinator latency observations.
+- Added consumer rebalance safety handling to stop processing revoked
+  partitions and avoid committing unprocessed offsets.
+- Documented hot-stream mitigation via substream namespace split strategy for
+  horizontal scaling without global ordering assumptions.

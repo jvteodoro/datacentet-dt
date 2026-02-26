@@ -39,6 +39,7 @@ class DataCenterTwin:
         self._snapshot_store = snapshot_store if snapshot_store is not None else _LocalSnapshotStore()
         self._snapshot_interval = snapshot_interval
         self._persistence_stream_id = persistence_stream_id
+        self._last_append_result = None
 
     @property
     def event_log(self) -> tuple[DomainEvent, ...]:
@@ -65,6 +66,10 @@ class DataCenterTwin:
     def metrics(self) -> MetricsCollector:
         return self._metrics
 
+    @property
+    def last_append_result(self) -> object | None:
+        return self._last_append_result
+
     def ingest_event(self, event: DomainEvent) -> None:
         started_ns = perf_counter_ns()
         normalized_event = self._normalizer_fn(event)
@@ -81,16 +86,24 @@ class DataCenterTwin:
                 candidate.rollback()
             raise
 
-        self._state = candidate.state if isinstance(candidate, TransitionCandidate) else candidate
+        next_state = candidate.state if isinstance(candidate, TransitionCandidate) else candidate
+        append_result = None
         if persist_event:
-            self._event_store.append(
+            append_result = self._event_store.append(
                 event,
                 stream_id=self._persistence_stream_id,
-                version_counter=self._state.version_counter,
+                version_counter=next_state.version_counter,
                 event_type=event.type,
                 payload=dict(event.payload),
                 ingest_id=event.event_id,
             )
+            if getattr(append_result, "value", append_result) == "ALREADY_EXISTS":
+                if isinstance(candidate, TransitionCandidate):
+                    candidate.rollback()
+                self._last_append_result = append_result
+                return
+        self._state = next_state
+        self._last_append_result = append_result
         self._snapshot = build_snapshot(self._state)
         if self._state.event_counter % self._snapshot_interval == 0:
             self._snapshot_store.save(
