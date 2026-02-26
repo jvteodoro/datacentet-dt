@@ -450,3 +450,36 @@ This envelope applies to PostgreSQL persistence adapters in infrastructure
   batch append must remain atomic and preserve caller order.
 - **Pooling guidance:** use connection pooling when ``psycopg_pool`` is available; fallback
   connection factory is allowed with explicit limitation on throughput.
+
+
+16. Phase 9C Streaming Partition Sizing Guidance
+------------------------------------------------
+
+Initial targets (to be refined with runtime benchmarks):
+
+- **Max streams per consumer instance (initial):** 50–200 active streams.
+- **Expected per-stream ingest rate (initial):** 50–500 events/s.
+- **Partition count guidance:**
+
+  - choose partitions >= active high-throughput streams requiring parallelism;
+  - maintain headroom for rebalance and lag recovery;
+  - keep per-partition load below the p95 ingest latency envelope.
+
+These are initial planning values and remain **TBD** for production finalization
+after dedicated load validation.
+
+
+17. Phase 9C.1 Operational Hardening Targets
+--------------------------------------------
+
+Initial operating guidance (subject to benchmark refinement):
+
+- **max_active_streams** recommended range per consumer process: 200–2000.
+- **stream_ttl_seconds** default guidance: 300–1800 seconds depending on
+  stream burstiness and recovery tolerance.
+- **acceptable eviction-rate threshold (steady state):** < 5% of active streams
+  per minute under normal load; sustained higher rates indicate partitioning or
+  capacity tuning requirements.
+
+All targets are initial and remain TBD for production calibration after
+dedicated load campaigns.
