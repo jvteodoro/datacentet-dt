@@ -563,3 +563,12 @@ with measured values during load campaigns:
 - Sustained throughput (events/s): TBD
 - HTTP error rate (%): TBD
 - Resource envelope (CPU, memory, DB connections): TBD
+
+Phase 9E ingestion placeholders
+-------------------------------
+
+- HTTP ingest p95/p99 budget (steady, burst, tick-heavy): TBD by local campaign evidence.
+- Kafka ingest p95/p99 budget under equivalent logical workload: TBD.
+- Coordinator rebalance recovery time budget: TBD.
+- Max lag during rebalance budget: TBD.
+- Duplicate/idempotency churn budget: TBD.

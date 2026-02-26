@@ -56,3 +56,16 @@ Methodological guidance
 3. Run equivalent semantic workloads through Kafka ingestion for transport-aware
    bottleneck analysis.
 4. Compare results without conflating protocol-specific bottlenecks.
+
+Phase 9E.4 equivalence method
+-----------------------------
+
+Use a shared seeded generator and identical logical profile/seed so the stream-level
+message sequence is equivalent per ``stream_id`` across transports. Then compare:
+
+- throughput (RPS), p95/p99, error-rate
+- sidecar hardware metrics (avg CPU, peak RSS, IO deltas)
+- lag/rebalance signals for Kafka runs
+
+Generate a comparison report with
+``load_testing/analysis/compare_http_vs_kafka.py``.

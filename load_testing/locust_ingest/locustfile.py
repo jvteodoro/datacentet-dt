@@ -3,7 +3,8 @@ from __future__ import annotations
 from gevent import sleep as gevent_sleep
 from locust import HttpUser, between, task
 
-from profiles import SeededTrafficGenerator, build_profile_spec, runtime_config_from_env
+from load_testing.locust_ingest.profiles import build_profile_spec, runtime_config_from_env
+from load_testing.locust_ingest.seeded_generator import SeededTelemetryGenerator
 
 RUNTIME = runtime_config_from_env()
 PROFILE = build_profile_spec(RUNTIME.profile)
@@ -14,11 +15,13 @@ class IngestionGatewayUser(HttpUser):
 
     def on_start(self) -> None:
         user_seed = RUNTIME.seed + int(self.environment.runner.user_count)
-        self.generator = SeededTrafficGenerator(
-            spec=PROFILE,
+        self.generator = SeededTelemetryGenerator(
+            profile=PROFILE,
+            infra_size=RUNTIME.infra_size,
             seed=user_seed,
             source=RUNTIME.source,
-            max_server_index=RUNTIME.max_server_index,
+            require_ingest_id=RUNTIME.require_ingest_id,
+            duplicate_rate=RUNTIME.duplicate_rate,
         )
 
     @task

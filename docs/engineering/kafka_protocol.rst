@@ -188,3 +188,18 @@ Streaming metrics side-channel
   - optional lag hint
 
 - Metrics never alter domain transitions, validation, or replay semantics.
+
+Phase 9E.3/9E.5 campaign notes
+------------------------------
+
+Use ``load_testing/campaigns/run_kafka_campaign.sh`` for deterministic ingestion campaigns.
+The producer uses ``key=stream_id`` and the shared seeded generator to keep HTTP/Kafka
+logical streams equivalent.
+
+Rebalance stress:
+
+- Run ``load_testing/campaigns/run_rebalance_stress.sh`` with profiles:
+  ``hot_stream``, ``uniform_streams``, ``burst_streams``, ``rebalance_churn``.
+- Record rebalance action timestamps in ``manifest.yml`` and ``notes.md``.
+- Track recovery metrics: rebalance recovery time, max lag during rebalance, and
+duplicate/idempotency rates during churn.

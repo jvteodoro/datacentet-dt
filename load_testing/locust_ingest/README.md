@@ -1,17 +1,15 @@
 # Locust Ingestion Load Testing (HTTP Gateway)
 
-Run against the ingestion HTTP gateway:
-
-```bash
-python -m digital_twin.presentation.ingestion_http_runner
-```
-
-Then execute Locust:
-
-```bash
-locust -f load_testing/locust_ingest/locustfile.py --host http://127.0.0.1:8091
-```
-
 Profiles: `steady_poisson_users`, `burst_pareto_users`, `multi_stream_scale`, `tick_heavy_infra`, `mixed_with_flows`.
 
-All events include deterministic client-side `ingest_id` values derived from `(LOCUST_SEED, stream_id, sequence, event_type)`.
+Determinism contract:
+- Same seed => same per-stream logical sequence (`stream_id`, event order, ingest_id if enabled).
+- `ingest_id` is enabled by default (`LOCUST_REQUIRE_INGEST_ID=true`).
+- Duplicate injection is explicit (`LOCUST_DUPLICATE_RATE`, default `0.0`).
+
+Infrastructure sizing knobs:
+- `LOCUST_NUM_NODES`
+- `LOCUST_NUM_LINKS`
+- `LOCUST_NUM_SERVERS`
+
+Use `load_testing/campaigns/run_http_campaign.sh` to capture full run artifacts.

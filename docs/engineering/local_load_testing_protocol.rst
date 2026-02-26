@@ -176,3 +176,15 @@ This protocol ensures:
 - Deterministic validation.
 - Scalable refinement cycle.
 - Engineering rigor.
+
+Campaign artifacts + CSV telemetry
+----------------------------------
+
+Each run must write:
+
+- ``manifest.yml`` (seed, profile, users/spawn, duration, target, transport, git sha)
+- ``locust_stats.csv`` and ``locust_failures.csv`` (or transport equivalent)
+- ``resource_usage.csv`` from ``load_testing/telemetry/resource_sidecar.py``
+- optional ``kafka_lag.csv``
+- ``derived/summary.md`` and ``derived/bottleneck.md`` from
+  ``load_testing/analysis/merge_run_artifacts.py``
