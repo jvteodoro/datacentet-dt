@@ -7,7 +7,7 @@ import urllib.request
 from digital_twin.observability.cache import MetricsSnapshotCache
 from digital_twin.observability.clock import Clock
 from digital_twin.observability.collector import SnapshotCollector
-from digital_twin.observability.model import MetricKind, MetricPoint
+from digital_twin.observability.model import Histogram, MetricKind, MetricPoint, TopKEntry
 from digital_twin.observability.registry import ObservabilityRegistry
 from digital_twin.presentation.metrics_api import create_metrics_api_server
 
@@ -30,6 +30,12 @@ class _Provider:
     def collect_metrics(self) -> dict[str, MetricPoint]:
         self.calls += 1
         return {"z": MetricPoint(kind=MetricKind.COUNTER, value=self.calls)}
+
+    def collect_topk(self) -> dict[str, tuple[TopKEntry, ...]]:
+        return {"top.links.by_backlog": (TopKEntry(id="link-0", value=1.0),)}
+
+    def collect_histograms(self) -> dict[str, Histogram]:
+        return {"hist.net.backlog": Histogram(bin_edges=(0.0, 1.0), counts=(1,))}
 
 
 def _get_json(url: str) -> dict[str, object]:
@@ -55,8 +61,10 @@ def test_metrics_endpoint_uses_cache_not_full_refresh_per_request() -> None:
 
     try:
         base = f"http://127.0.0.1:{server.server_port}"
-        for _ in range(250):
+        for _ in range(120):
             _get_json(f"{base}/metrics")
+            _get_json(f"{base}/metrics/top")
+            _get_json(f"{base}/metrics/histograms")
 
         assert provider.calls <= 2
     finally:

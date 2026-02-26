@@ -98,3 +98,32 @@ Failure fallback behavior:
   (``observability.cache_refresh_errors_total``);
 - this failure handling remains observational and does not affect domain
   ingestion, validation, persistence ordering, or replay semantics.
+
+
+Expanded Coverage (Phase 9D.2)
+------------------------------
+
+The unified snapshot now includes three bounded blocks:
+
+- ``metrics``: aggregate counters/gauges/histogram-style scalar aggregates;
+- ``topk``: bounded granular rankings (deterministic ordering);
+- ``histograms``: fixed-bin distributions.
+
+Additional read-only endpoints:
+
+- ``GET /metrics/top`` -> bounded Top-K payloads (optional ``?limit=`` clamped)
+- ``GET /metrics/histograms`` -> fixed histogram definitions and counts
+
+New insight providers:
+
+- ``NetworkInsightProvider``
+  - always-on: ``net.active_flows.count``, ``net.backlog.total``, ``net.backlog.max``
+  - granular: ``top.links.by_backlog``, ``hist.net.backlog``
+- ``ComputeInsightProvider``
+  - always-on: ``compute.active_workloads.count``, ``compute.cpu_usage.total``,
+    ``compute.cpu_usage.max``, ``compute.mem_usage.total``, ``compute.mem_usage.max``
+  - granular: ``top.servers.by_cpu``, ``top.servers.by_mem``,
+    ``hist.compute.cpu_usage``, ``hist.compute.mem_usage``
+
+Cardinality and bounding policy is defined in
+:doc:`observability_cardinality_policy`.

@@ -39,6 +39,8 @@ def test_metrics_api_contract_and_sorted_payload_keys() -> None:
         metrics_body, metrics = _get_json(f"{base}/metrics")
         _, schema = _get_json(f"{base}/metrics/schema")
         _, streams = _get_json(f"{base}/metrics/streams")
+        _, topk = _get_json(f"{base}/metrics/top")
+        _, histograms = _get_json(f"{base}/metrics/histograms")
 
         assert metrics["mode"] == "LIVE"
         assert metrics["node_id"] == "node-api"
@@ -48,14 +50,21 @@ def test_metrics_api_contract_and_sorted_payload_keys() -> None:
         assert metrics_body == json.dumps(metrics, separators=(",", ":"), sort_keys=True)
         assert list(metrics["metrics"].keys()) == sorted(metrics["metrics"].keys())
 
-        assert "metrics" in schema
-        assert isinstance(schema["metrics"], list)
-        assert any(item["name"] == "domain.events_processed_total" for item in schema["metrics"])
+        assert "scalar_metrics" in schema
+        assert isinstance(schema["scalar_metrics"], list)
+        assert isinstance(schema["topk"], list)
+        assert isinstance(schema["histograms"], list)
+        assert any(item["name"] == "domain.events_processed_total" for item in schema["scalar_metrics"])
 
         assert streams["active_streams"] == 2
         assert streams["evictions_total"] == 1
         assert streams["outcomes_total"]["APPLIED"] == 1
         assert streams["kafka_lag_last"] == 4
+
+        assert topk["limit"] > 0
+        assert isinstance(topk["topk"], dict)
+
+        assert isinstance(histograms["histograms"], dict)
     finally:
         server.shutdown()
         server.server_close()

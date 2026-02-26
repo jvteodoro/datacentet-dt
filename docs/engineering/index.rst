@@ -14,5 +14,6 @@ Engineering
    load_testing_model
    local_load_testing_protocol
    observability_metrics_api
+   observability_cardinality_policy
    performance_budget
    real_db_protocol

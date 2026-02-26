@@ -55,6 +55,8 @@ class MetricsSnapshotCache:
                 mode=fresh.mode,
                 metrics=dict(fresh.metrics),
                 node_id=fresh.node_id,
+                topk=dict(fresh.topk),
+                histograms=dict(fresh.histograms),
             )
             self._state.produced_at_monotonic = now
             return self._decorate_snapshot(self._state.snapshot, now, now)
@@ -75,4 +77,6 @@ class MetricsSnapshotCache:
             metrics=metrics,
             node_id=snapshot.node_id,
             snapshot_age_ms=age_ms,
+            topk=dict(snapshot.topk),
+            histograms=dict(snapshot.histograms),
         )

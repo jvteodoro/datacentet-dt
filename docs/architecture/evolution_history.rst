@@ -247,3 +247,16 @@ Phase 9D.1 — Metrics cache and staleness contract
   reducing repeated per-request collection overhead under burst traffic.
 - Formalized staleness semantics and failure fallback: return last cached
   snapshot on refresh failure and increment observability refresh-error counter.
+
+
+Phase 9D.2 — Metrics coverage expansion + cardinality policy
+--------------------------------------------------------------
+
+- Expanded observability snapshot with bounded ``topk`` and fixed-bin
+  ``histograms`` blocks, preserving deterministic-safe serialization ordering.
+- Added network/compute insight providers using snapshot-only reads for
+  aggregate always-on metrics plus bounded Top-K and histogram exports.
+- Added read-only cache-backed endpoints ``/metrics/top`` and
+  ``/metrics/histograms`` with hard limit enforcement.
+- Formalized observability cardinality/cost policy and deterministic ordering
+  requirements for hyperscale-safe request behavior.
