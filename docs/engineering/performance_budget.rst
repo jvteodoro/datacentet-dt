@@ -431,3 +431,22 @@ Design target and verification objective for flow events:
 - strict :math:`O(path\_length)` transition work for ``FlowStarted`` and ``FlowEnded``
 - no full dynamic-container copy in flow event paths
 - validation restricted to modified entities
+
+
+DB Adapter Envelope (initial)
+-----------------------------
+
+This envelope applies to PostgreSQL persistence adapters in infrastructure
+(``EventStorePG`` and ``SnapshotStorePG``).
+
+- **Append latency targets (single append):**
+
+  - p95: **TBD** (measure in environment-specific load tests)
+  - p99: **TBD** (measure in environment-specific load tests)
+
+- **Sustained append rate target:** **TBD** events/s (to be fixed after baseline load campaign).
+- **Replay ordering constraint:** all replay reads must remain ``ORDER BY seq ASC``.
+- **Batching guidance:** prefer bounded deterministic batches when ingest pressure is high;
+  batch append must remain atomic and preserve caller order.
+- **Pooling guidance:** use connection pooling when ``psycopg_pool`` is available; fallback
+  connection factory is allowed with explicit limitation on throughput.
