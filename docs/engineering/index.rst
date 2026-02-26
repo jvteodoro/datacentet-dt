@@ -13,5 +13,6 @@ Engineering
    kafka_protocol
    load_testing_model
    local_load_testing_protocol
+   observability_metrics_api
    performance_budget
    real_db_protocol

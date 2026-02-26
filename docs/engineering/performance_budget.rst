@@ -483,3 +483,32 @@ Initial operating guidance (subject to benchmark refinement):
 
 All targets are initial and remain TBD for production calibration after
 dedicated load campaigns.
+
+18. Phase 9D Metrics API SLO Placeholders
+-----------------------------------------
+
+Initial observability API target placeholders (final values to be fixed after
+runtime benchmark campaign):
+
+- ``/metrics`` response latency:
+
+  - p95: **TBD**
+  - p99: **TBD**
+
+- max ``/metrics`` payload size: **TBD** KiB
+- metrics collection overhead budget per call: **TBD** microseconds/milliseconds
+
+These metrics are operational side channels and must not alter domain
+transition semantics or replay equivalence.
+
+19. Phase 9D.1 Metrics Cache Envelope
+-------------------------------------
+
+Initial envelope for cache-served metrics API path:
+
+- default metrics cache TTL: ``200`` ms (``METRICS_CACHE_TTL_MS``)
+- ``/metrics`` handler overhead target (cache-hit path): **< 1 ms**
+- max snapshot payload size target: **TBD** KiB
+
+Cache refresh must remain bounded to metrics aggregation scope and must not
+introduce domain scans or transition-path blocking.
