@@ -551,3 +551,15 @@ Required report fields for every run:
 - HTTP error rate
 - payload size estimates (bytes) for key endpoints
 - cache-hit vs refresh-path latency comparison summary
+
+Phase 9E.1 placeholders — HTTP ingestion load budgets
+------------------------------------------------------
+
+The following placeholders are introduced for Phase 9E.1 and must be populated
+with measured values during load campaigns:
+
+- Ingestion endpoint p95 latency (ms): TBD
+- Ingestion endpoint p99 latency (ms): TBD
+- Sustained throughput (events/s): TBD
+- HTTP error rate (%): TBD
+- Resource envelope (CPU, memory, DB connections): TBD

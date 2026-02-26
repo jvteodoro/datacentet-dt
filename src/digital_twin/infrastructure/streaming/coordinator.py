@@ -157,6 +157,61 @@ class MultiStreamCoordinator:
         self._metrics.set_streams_active_gauge(self.active_stream_count())
         return outcome
 
+
+    def ingest_event(self, *, stream_id: str, event: Any, ingest_id: str) -> IngestionOutcome:
+        """Apply a pre-normalized event through the canonical per-stream ingestion path."""
+
+        started = self._clock()
+        now = started
+        try:
+            twin = self._resolve_twin(stream_id, now)
+            twin.ingest_event(event)
+            append_result = getattr(twin, "last_append_result", None)
+            status = IngestionStatus.DUPLICATE if getattr(append_result, "value", append_result) == "ALREADY_EXISTS" else IngestionStatus.APPLIED
+            outcome = IngestionOutcome(
+                stream_id=stream_id,
+                ingest_id=ingest_id,
+                status=status,
+                kafka_context={},
+            )
+        except Exception as exc:
+            if exc.__class__.__name__ == "VersionConflictError":
+                outcome = IngestionOutcome(
+                    stream_id=stream_id,
+                    ingest_id=ingest_id,
+                    status=IngestionStatus.VERSION_CONFLICT,
+                    kafka_context={},
+                    dlq_reason=str(exc),
+                    raw_message=None,
+                )
+            elif isinstance(exc, (KafkaValidationError, ValueError)):
+                outcome = IngestionOutcome(
+                    stream_id=stream_id,
+                    ingest_id=ingest_id,
+                    status=IngestionStatus.DLQ,
+                    kafka_context={},
+                    dlq_reason=str(exc),
+                    raw_message=None,
+                )
+            else:
+                raise
+
+        if outcome.stream_id in self._streams:
+            self._streams[outcome.stream_id].last_seen_monotonic = now
+
+        self._handled_count += 1
+        self._metrics.record_outcome(status=outcome.status.value)
+        self._metrics.record_handle_latency_ms((self._clock() - started) * 1000.0)
+
+        if self._handled_count % self._settings.eviction_batch_size == 0:
+            self.maybe_evict(now_monotonic=now)
+
+        if self.active_stream_count() > self._settings.max_active_streams:
+            self._evict_for_capacity(now)
+
+        self._metrics.set_streams_active_gauge(self.active_stream_count())
+        return outcome
+
     def maybe_evict(self, *, now_monotonic: float | None = None) -> tuple[EvictionOutcome, ...]:
         now = self._clock() if now_monotonic is None else now_monotonic
         candidates = self.evict_candidates(now)
