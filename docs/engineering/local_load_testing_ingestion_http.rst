@@ -74,3 +74,19 @@ Determinism notes
   (``REQUIRE_INGEST_ID=1``).
 - Ordering policy and idempotency requirements align with determinism and replay
   guidance in :doc:`determinism_and_replay`.
+
+Phase 9E.2 additions
+--------------------
+
+Use ``load_testing/campaigns/run_http_campaign.sh`` as the source-of-truth runner.
+It creates ``load_testing/runs/<run_id>/`` with ``manifest.yml``, Locust CSV files,
+``resource_usage.csv``, free-form ``notes.md``, and derived analysis markdown.
+
+Scenario matrix for bottleneck attribution:
+
+- domain-only: in-memory event/snapshot stores.
+- db-backed events only: EventStorePG enabled, snapshots disabled.
+- db + snapshots: EventStorePG and SnapshotStorePG enabled.
+
+Run each scenario with the same ``SEED``, profile, users, and duration to preserve
+logical workload equivalence.

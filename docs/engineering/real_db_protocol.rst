@@ -118,3 +118,13 @@ Running both migrations:
    python -c "from digital_twin.infrastructure.db.postgres import run_migrations; run_migrations()"
 
 The migration runner applies ``0001_init.sql`` followed by ``0002_hardening.sql``.
+
+Phase 9E DB load notes
+----------------------
+
+When attributing bottlenecks, capture DB pooling and index/pruning configuration in
+campaign ``manifest.yml`` notes. Compare:
+
+- EventStorePG only vs EventStorePG + SnapshotStorePG.
+- Snapshot interval/pruning policy impacts on write amplification.
+- connection pool saturation against ingestion latency p95/p99.

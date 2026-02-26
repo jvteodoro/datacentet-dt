@@ -288,3 +288,11 @@ Phase 9E.1 — HTTP Ingestion Load Testing + Locust Hyperscale Input Simulation
 - Established HTTP-first load methodology as a precursor to Kafka transport
   load testing; rationale is partially inferred from Phase 9E goals and linked
   explicitly to Phase 9E metrics-API load experimentation.
+
+Phase 9E.2–9E.5 — Hyperscale ingestion load pipeline
+-----------------------------------------------------
+
+- Added deterministic HTTP and Kafka campaign scripts with run artifact manifests.
+- Added CSV hardware telemetry sidecar (psutil) and analysis merger/comparison tooling.
+- Added rebalance/partition stress profiles and attribution documentation.
+- Preserved domain determinism by keeping load tooling external to ``src/``.

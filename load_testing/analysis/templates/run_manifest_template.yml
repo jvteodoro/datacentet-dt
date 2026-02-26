@@ -1,0 +1,9 @@
+run_id: <transport>-<timestamp>
+transport: http|kafka
+target: <host_or_broker>
+profile: <profile_name>
+seed: 42
+users: 10
+spawn_rate: 2
+duration: 60s
+git_sha: <sha>
