@@ -1,0 +1,18 @@
+services:
+  metrics-api:
+    image: python:3.11-slim
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    environment:
+      PYTHONPATH: /workspace/src
+      METRICS_API_HOST: 0.0.0.0
+      METRICS_API_PORT: 8000
+      MODE: LIVE
+      NODE_ID: metrics-api-local
+      METRICS_CACHE_TTL_MS: 200
+    command: >-
+      sh -c "pip install --no-cache-dir -r requirements.txt &&
+      python -m digital_twin.presentation.metrics_api_runner"
+    ports:
+      - "8000:8000"
