@@ -8,8 +8,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from digital_twin.observability.cache import MetricsSnapshotCache
 from digital_twin.observability.clock import DefaultClock
 from digital_twin.observability.collector import SnapshotCollector
+from digital_twin.observability.config import OBS_TOPK_DEFAULT, OBS_TOPK_HARD_MAX
 from digital_twin.observability.registry import ObservabilityRegistry
-from digital_twin.observability.snapshot import snapshot_schema, stream_aggregates
+from digital_twin.observability.snapshot import histogram_aggregates, snapshot_schema, stream_aggregates, topk_aggregates
 
 
 class MetricsAPIHandler(BaseHTTPRequestHandler):
@@ -31,13 +32,24 @@ class MetricsAPIHandler(BaseHTTPRequestHandler):
 
         if self.path == "/metrics/schema":
             snapshot = self.cache.get(mode=self.mode)
-            payload = {"metrics": snapshot_schema(snapshot)}
+            payload = snapshot_schema(snapshot)
             self._send_json(HTTPStatus.OK, payload)
             return
 
         if self.path == "/metrics/streams":
             snapshot = self.cache.get(mode=self.mode)
             self._send_json(HTTPStatus.OK, stream_aggregates(snapshot))
+            return
+
+        if self.path.startswith("/metrics/top"):
+            snapshot = self.cache.get(mode=self.mode)
+            topk_limit = _topk_limit_from_path(self.path)
+            self._send_json(HTTPStatus.OK, {"topk": topk_aggregates(snapshot, limit=topk_limit), "limit": topk_limit})
+            return
+
+        if self.path == "/metrics/histograms":
+            snapshot = self.cache.get(mode=self.mode)
+            self._send_json(HTTPStatus.OK, {"histograms": histogram_aggregates(snapshot)})
             return
 
         self._send_json(HTTPStatus.NOT_FOUND, {"error": "not_found"})
@@ -49,6 +61,21 @@ class MetricsAPIHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+
+def _topk_limit_from_path(path: str) -> int:
+    if "?" not in path:
+        return OBS_TOPK_DEFAULT
+    _, query = path.split("?", 1)
+    params = dict(part.split("=", 1) for part in query.split("&") if "=" in part)
+    raw = params.get("limit")
+    if raw is None:
+        return OBS_TOPK_DEFAULT
+    try:
+        parsed = int(raw)
+    except ValueError:
+        return OBS_TOPK_DEFAULT
+    return min(max(1, parsed), OBS_TOPK_HARD_MAX)
 
 
 class MetricsAPIServer(ThreadingHTTPServer):

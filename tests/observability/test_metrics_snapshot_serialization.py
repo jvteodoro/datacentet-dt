@@ -20,7 +20,7 @@ def test_snapshot_json_has_stable_order_and_required_fields() -> None:
     assert payload == snapshot.to_json()
     decoded = json.loads(payload)
 
-    assert set(decoded.keys()) == {"metrics", "mode", "node_id", "timestamp_utc", "produced_at_utc", "snapshot_age_ms"}
+    assert set(decoded.keys()) == {"metrics", "mode", "node_id", "timestamp_utc", "produced_at_utc", "snapshot_age_ms", "topk", "histograms"}
     assert decoded["mode"] == "LIVE"
     assert decoded["node_id"] == "node-a"
 
