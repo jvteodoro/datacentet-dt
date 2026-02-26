@@ -16,6 +16,7 @@ where = ["src"]
 
 
 [tool.pytest.ini_options]
+pythonpath = ["src", "."]
 markers = [
     "postgres: marks tests requiring a running local PostgreSQL instance",
     "kafka: marks tests requiring Kafka adapter runtime",
