@@ -273,3 +273,18 @@ Phase 9E — Local Locust Load-Testing Suite for Metrics API
   than mutation endpoints.
 - Added local operator documentation and acceptance-gate placeholders linking
   Locust scenarios to performance budget reporting fields.
+
+Phase 9E.1 — HTTP Ingestion Load Testing + Locust Hyperscale Input Simulation
+-------------------------------------------------------------------------------
+
+- Added a lightweight HTTP ingestion gateway for ``/ingest`` and
+  ``/ingest/batch`` using the shared telemetry message contract and normalizer,
+  preserving canonical domain pipeline semantics.
+- Introduced deterministic Locust ingestion profiles for workload, flow, and
+  tick event traffic with seeded stochastic distributions (exponential,
+  Pareto/lognormal, Zipf hotspot routing).
+- Added ingestion-path observability for latency and HTTP outcome status
+  breakdown as side-channel metrics.
+- Established HTTP-first load methodology as a precursor to Kafka transport
+  load testing; rationale is partially inferred from Phase 9E goals and linked
+  explicitly to Phase 9E metrics-API load experimentation.
