@@ -1,0 +1,23 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: datacenter_twin_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-digital_twin}
+      POSTGRES_USER: ${POSTGRES_USER:-digital_twin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-digital_twin}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-digital_twin} -d ${POSTGRES_DB:-digital_twin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pg_data:

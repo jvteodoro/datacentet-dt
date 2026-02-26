@@ -10,8 +10,8 @@ class InMemorySnapshotStore(SnapshotStore):
     def __init__(self) -> None:
         self._latest: Optional[TwinSnapshot] = None
 
-    def save(self, snapshot: TwinSnapshot) -> None:
+    def save(self, snapshot: TwinSnapshot, **_: object) -> None:
         self._latest = snapshot
 
-    def load_latest(self) -> Optional[TwinSnapshot]:
+    def load_latest(self, **_: object) -> Optional[TwinSnapshot]:
         return self._latest

@@ -144,3 +144,33 @@ Phase 7 — Optimization Architecture
 - Added immutable ``ActionProposal`` model and fail-fast admissibility/safety contracts.
 - Added baseline O(1) optimization policy based on aggregated backlog metric.
 - Enforced optimization re-entry through ``ControlActionProposed`` domain events to preserve replay determinism.
+
+
+Phase 8 — Real Database Persistence Backend
+-------------------------------------------
+
+- Replaced in-memory-only persistence path with PostgreSQL-backed adapters for
+  ``EventStore`` and ``SnapshotStore`` ports.
+- Preserved append-only event log as authoritative source of truth.
+- Added canonical JSON SHA-256 hashing for persisted event payloads and snapshot
+  payload bytes to harden determinism integrity and corruption detection.
+- Kept snapshot semantics as acceleration-only for recovery (load latest snapshot,
+  replay tail events by logical version while preserving DB read order by ``seq``).
+- Maintained domain transition and validation semantics unchanged through
+  ports/adapters dependency injection.
+
+
+Phase 8.1 — Persistence Hardening
+---------------------------------
+
+- Added additive hardening migration ``0002_hardening.sql`` to enforce stream-level
+  invariants: unique logical version per stream and idempotent ingest token per stream.
+- Hardened append semantics with explicit idempotency signaling
+  (``AppendResult.ALREADY_EXISTS``) and deterministic ``VersionConflictError`` on
+  logical version collisions.
+- Added operational snapshot compaction policy (keep latest N per stream) without
+  changing replay semantics or event-log source-of-truth posture.
+- Introduced DB adapter observational metrics (append/snapshot latency and error counters)
+  as side channels aligned with metrics architecture.
+- Added connection-factory/pooling support with context-managed transaction boundaries
+  for safer concurrent persistence operations.

@@ -24,6 +24,7 @@ class DataCenterTwin:
         event_store: object | None = None,
         snapshot_store: object | None = None,
         snapshot_interval: int = 1000,
+        persistence_stream_id: str = "default",
     ) -> None:
         if snapshot_interval <= 0:
             raise ValueError("snapshot_interval must be > 0")
@@ -37,6 +38,7 @@ class DataCenterTwin:
         self._event_store = event_store if event_store is not None else _LocalEventStore()
         self._snapshot_store = snapshot_store if snapshot_store is not None else _LocalSnapshotStore()
         self._snapshot_interval = snapshot_interval
+        self._persistence_stream_id = persistence_stream_id
 
     @property
     def event_log(self) -> tuple[DomainEvent, ...]:
@@ -81,10 +83,21 @@ class DataCenterTwin:
 
         self._state = candidate.state if isinstance(candidate, TransitionCandidate) else candidate
         if persist_event:
-            self._event_store.append(event)
+            self._event_store.append(
+                event,
+                stream_id=self._persistence_stream_id,
+                version_counter=self._state.version_counter,
+                event_type=event.type,
+                payload=dict(event.payload),
+                ingest_id=event.event_id,
+            )
         self._snapshot = build_snapshot(self._state)
         if self._state.event_counter % self._snapshot_interval == 0:
-            self._snapshot_store.save(self._snapshot)
+            self._snapshot_store.save(
+                self._snapshot,
+                stream_id=self._persistence_stream_id,
+                version_counter=self._snapshot.version_counter,
+            )
 
     def get_snapshot(self) -> TwinSnapshot:
         return self._snapshot
@@ -98,17 +111,17 @@ class DataCenterTwin:
             self.ingest_event(event)
 
     def recover(self) -> None:
-        snapshot = self._snapshot_store.load_latest()
+        snapshot = self._snapshot_store.load_latest(stream_id=self._persistence_stream_id)
         self._metrics = MetricsCollector()
 
         if snapshot is not None:
             self._state = state_from_snapshot(snapshot)
             self._snapshot = snapshot
-            events = self._event_store.load_from(snapshot.version_counter)
+            events = self._event_store.load_from(snapshot.version_counter, stream_id=self._persistence_stream_id)
         else:
             self._state = _build_initial_state()
             self._snapshot = build_snapshot(self._state)
-            events = self._event_store.load_all()
+            events = self._event_store.load_all(stream_id=self._persistence_stream_id)
 
         for event in events:
             self._apply_normalized_event(event, persist_event=False)
@@ -120,24 +133,25 @@ def _build_initial_state() -> TwinState:
 
 class _LocalEventStore:
     def __init__(self) -> None:
-        self._events: list[DomainEvent] = []
+        self._events: list[tuple[int, DomainEvent]] = []
 
-    def append(self, event: DomainEvent) -> None:
-        self._events.append(event)
+    def append(self, event: DomainEvent, **kwargs: object) -> None:
+        version_counter = int(kwargs.get("version_counter", event.version))
+        self._events.append((version_counter, event))
 
-    def load_all(self) -> tuple[DomainEvent, ...]:
-        return tuple(self._events)
+    def load_all(self, **_: object) -> tuple[DomainEvent, ...]:
+        return tuple(event for _, event in self._events)
 
-    def load_from(self, version: int) -> tuple[DomainEvent, ...]:
-        return tuple(self._events[version:])
+    def load_from(self, version: int, **_: object) -> tuple[DomainEvent, ...]:
+        return tuple(event for version_counter, event in self._events if version_counter > version)
 
 
 class _LocalSnapshotStore:
     def __init__(self) -> None:
         self._snapshot: TwinSnapshot | None = None
 
-    def save(self, snapshot: TwinSnapshot) -> None:
+    def save(self, snapshot: TwinSnapshot, **_: object) -> None:
         self._snapshot = snapshot
 
-    def load_latest(self) -> TwinSnapshot | None:
+    def load_latest(self, **_: object) -> TwinSnapshot | None:
         return self._snapshot
